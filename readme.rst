@@ -1,25 +1,25 @@
-What3Words Tools
+what3words Tools
 =====================
 
-Tools to use What3Words coordinates in QGIS
+Tools to use what3words 3 word addresses in QGIS
 -------------------------------------
 
 The plugin contains 2 tools:
 
-- Zoom to coordinate
-- What3Words map tool
+- Zoom to 3 word address
+- what3words map tool
 
-To use the map tool, select the *What3Words map tool* item in the What3Words tools menu. 
+To use the map tool, select the *what3words map tool* item in the what3words tools menu.
 
-The map tool will get activated. When you now click with your mouse on the QGIS map canvas, the What3Words coordinates corresponding to the mouse position will be displayed in the QGIS message bar.
+The map tool will get activated. When you now click with your mouse on the QGIS map canvas, the 3 word address corresponding to the mouse position will be displayed in the QGIS message bar.
 
 .. image:: messagebar.png
 
-The *Zoom to coordinate* tool allows you to zoom to a given What3Words coordinate. Enter the coordinate as three words separated by dots.
+The *Zoom to 3 word address* tool allows you to zoom to a given 3 word address. Enter the 3 word address as three words separated by dots.
 
 .. image:: zoomto.png
 
-To use the What3Words service, you need an API key. You can set the API key using the *Set API key menu*
+To use the what3words service, you need an API key. You can sign up for an API key at http://developer.what3words.com/ and set the API key using the *Set API key menu*
 
 .. image:: apikey.png
 

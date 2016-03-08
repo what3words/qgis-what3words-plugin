@@ -17,10 +17,10 @@ class W3WCoordInputDialog(QtGui.QDockWidget):
         self.w3w = what3words(apikey=apikey)
 
     def initGui(self):
-        self.setWindowTitle("What3Words Coordinate Zoom")
-        self.label = QtGui.QLabel('What3Words coordinate')        
-        self.coordBox = QtGui.QLineEdit()      
-        self.coordBox.returnPressed.connect(self.zoomToPressed)  
+        self.setWindowTitle("Zoom to 3 word address")
+        self.label = QtGui.QLabel('3 Word Address')
+        self.coordBox = QtGui.QLineEdit()
+        self.coordBox.returnPressed.connect(self.zoomToPressed)
         self.zoomToButton = QtGui.QPushButton("Zoom to")
         self.zoomToButton.clicked.connect(self.zoomToPressed)
         self.removeMarkerButton = QtGui.QPushButton("Remove marker")
@@ -42,10 +42,10 @@ class W3WCoordInputDialog(QtGui.QDockWidget):
             w3wCoord = str(self.coordBox.text()).replace(" ", "")
             QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             lat, lon = self.w3w.getPosition(w3wCoord)["position"]
-            canvasCrs = self.canvas.mapRenderer().destinationCrs() 
+            canvasCrs = self.canvas.mapRenderer().destinationCrs()
             epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
             transform4326 = QgsCoordinateTransform(epsg4326, canvasCrs)
-            center = transform4326.transform(lon, lat)             
+            center = transform4326.transform(lon, lat)
             self.canvas.zoomByFactor(1, center)
             self.canvas.refresh()
             if self.marker is None:
@@ -55,7 +55,7 @@ class W3WCoordInputDialog(QtGui.QDockWidget):
             self.marker.setPenWidth(4)
             self.removeMarkerButton.setDisabled(False)
             self.coordBox.setStyleSheet("QLineEdit{background: white}")
-        except Exception, e:    
+        except Exception, e:
             print e
             self.coordBox.setStyleSheet("QLineEdit{background: yellow}")
         finally:

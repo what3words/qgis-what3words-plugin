@@ -19,23 +19,23 @@ class W3WTools:
     def initGui(self):
 
         mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "w3w.svg"))
-        self.toolAction = QAction(mapToolIcon, "What3Words map tool",
-                                     self.iface.mainWindow())        
+        self.toolAction = QAction(mapToolIcon, "what3words map tool",
+                                     self.iface.mainWindow())
         self.toolAction.triggered.connect(self.setTool)
         self.toolAction.setCheckable(True)
         self.iface.addToolBarIcon(self.toolAction)
-        self.iface.addPluginToMenu("What3Words", self.toolAction)
+        self.iface.addPluginToMenu("what3words", self.toolAction)
 
         zoomToIcon = QIcon(':/images/themes/default/mActionZoomIn.svg')
-        self.zoomToAction = QAction(zoomToIcon, "Zoom to What3Words coordinate",
-                                     self.iface.mainWindow())        
+        self.zoomToAction = QAction(zoomToIcon, "Zoom to 3 word address",
+                                     self.iface.mainWindow())
         self.zoomToAction.triggered.connect(self.zoomTo)
-        self.iface.addPluginToMenu("What3Words", self.zoomToAction)
+        self.iface.addPluginToMenu("what3words", self.zoomToAction)
 
         self.apikeyAction = QAction("Set API key",
-                                     self.iface.mainWindow())        
+                                     self.iface.mainWindow())
         self.apikeyAction.triggered.connect(askForApiKey)
-        self.iface.addPluginToMenu("What3Words", self.apikeyAction)
+        self.iface.addPluginToMenu("what3words", self.apikeyAction)
 
         self.iface.mapCanvas().mapToolSet.connect(self.unsetTool)
 
@@ -68,6 +68,5 @@ class W3WTools:
     def unload(self):
         self.iface.mapCanvas().unsetMapTool(self.mapTool)
         self.iface.removeToolBarIcon(self.toolAction)
-        self.iface.removePluginMenu("What3Words", self.toolAction)
-        self.iface.removePluginMenu("What3Words", self.zoomToAction)
-   
+        self.iface.removePluginMenu("what3words", self.toolAction)
+        self.iface.removePluginMenu("what3words", self.zoomToAction)
