@@ -9,12 +9,21 @@ from qgis.gui import *
 from maptool import W3WMapTool
 from coorddialog import W3WCoordInputDialog
 from apikey import *
+try:
+    from processing.core.Processing import Processing
+    from processingprovider.w3wprovider import W3WProvider
+    processingOk = True
+except:
+    raise
+    processingOk = False
 
 class W3WTools:
 
     def __init__(self, iface):
         self.iface = iface
         self.mapTool = None
+        if processingOk:
+            self.provider = W3WProvider()
 
     def initGui(self):
 
@@ -43,6 +52,9 @@ class W3WTools:
         self.iface.addDockWidget(Qt.TopDockWidgetArea, self.zoomTo)
         self.zoomTo.hide()
 
+        if processingOk:
+            Processing.addProvider(self.provider)
+
     def zoomTo(self):
         if apikey() is None:
             return
@@ -70,3 +82,6 @@ class W3WTools:
         self.iface.removeToolBarIcon(self.toolAction)
         self.iface.removePluginMenu("what3words", self.toolAction)
         self.iface.removePluginMenu("what3words", self.zoomToAction)
+        self.iface.removePluginMenu("what3words", self.apikeyAction)
+        if processingOk:
+            Processing.removeProvider(self.provider)

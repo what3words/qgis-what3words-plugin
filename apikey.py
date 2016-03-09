@@ -4,11 +4,11 @@ from qgis.utils import iface
 
 _apikey = None
 
-def apikey():
+def apikey(ask = True):
     global _apikey
     if _apikey is None:
         _apikey = QSettings().value("/what3words/apikey/", None)
-        if _apikey is None:
+        if _apikey is None and ask:
             askForApiKey()
     return _apikey
 

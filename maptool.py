@@ -23,11 +23,8 @@ class W3WMapTool(QgsMapTool):
         pt4326 = transform.transform(pt.x(), pt.y())
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
-            res = self.w3w.getWords(pt4326.y(), pt4326.x())
-            print res
             w3wCoords = ".".join(self.w3w.getWords(pt4326.y(), pt4326.x())["words"])
         except Exception,e :
-            print e
             w3wCoords = None
         finally:
             QApplication.restoreOverrideCursor()
