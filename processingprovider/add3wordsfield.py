@@ -50,8 +50,10 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
         self.setOutputValue(self.OUTPUT, filename)
 
     def defineCharacteristics(self):
-        self.name, self.i18n_name = 'Add 3 words field to points layer'
-        self.group, self.i18n_group = 'what3words tools'
+        self.name = 'Add 3 words field to points layer'
+        self.i18n_name = self.name
+        self.group = 'what3words tools'
+        self.i18n_group = self.group
         self.addParameter(ParameterVector(self.INPUT,
                                           'Input layer', [ParameterVector.VECTOR_TYPE_POINT]))
         self.addOutput(OutputVector(self.OUTPUT, 'Output', True))
