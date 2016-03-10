@@ -50,11 +50,11 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
         self.setOutputValue(self.OUTPUT, filename)
 
     def defineCharacteristics(self):
-        self.name, self.i18n_name = self.trAlgorithm('Add 3 words field to points layer')
-        self.group, self.i18n_group = self.trAlgorithm('what3words tools')
+        self.name, self.i18n_name = 'Add 3 words field to points layer'
+        self.group, self.i18n_group = 'what3words tools'
         self.addParameter(ParameterVector(self.INPUT,
-                                          self.tr('Input layer'), [ParameterVector.VECTOR_TYPE_POINT]))
-        self.addOutput(OutputVector(self.OUTPUT, self.tr('Output'), True))
+                                          'Input layer', [ParameterVector.VECTOR_TYPE_POINT]))
+        self.addOutput(OutputVector(self.OUTPUT, 'Output', True))
 
     def getIcon(self):
         return QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "w3w.png"))
