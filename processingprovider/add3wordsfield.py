@@ -28,9 +28,9 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
         if not (caps & QgsVectorDataProvider.AddAttributes):
             raise GeoAlgorithmExecutionException("The selected layer does not support adding new attributes.")
 
-        idxField = fields.indexFromName("3_words")
+        idxField = fields.indexFromName("3WordAddr")
         if idxField == -1:
-            vprovider.addAttributes([QgsField("3_words", QVariant.String)])
+            vprovider.addAttributes([QgsField("3WordAddr", QVariant.String)])
             layer.updateFields()
             idxField = len(fields)
         nFeat = layer.featureCount()
