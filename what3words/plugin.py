@@ -21,6 +21,15 @@ class W3WTools:
 
     def __init__(self, iface):
         self.iface = iface
+
+        try:
+            from tests import testerplugin
+            from qgistester.tests import addTestModule
+            addTestModule(testerplugin, "what3words")
+        except:
+            pass
+
+
         self.mapTool = None
         if processingOk:
             self.provider = W3WProvider()
