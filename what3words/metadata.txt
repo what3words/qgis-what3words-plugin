@@ -12,6 +12,7 @@
 name=What3words Tools
 qgisMinimumVersion=2.0
 description=What3words Tools
+about=Tools to use what3words 3 word addresses in QGIS
 version=1.0
 author=Boundless
 email=volaya@boundlessgeo.com
@@ -26,9 +27,9 @@ email=volaya@boundlessgeo.com
 # tags are comma separated with spaces allowed
 tags=
 
-homepage=
-tracker=
-repository=
+homepage=https://github.com/boundlessgeo/qgis-what3words-plugin
+tracker=https://github.com/boundlessgeo/qgis-what3words-plugin/issues
+repository=https://github.com/boundlessgeo/qgis-what3words-plugin
 icon=what3.svg
 # experimental flag
 experimental=False
