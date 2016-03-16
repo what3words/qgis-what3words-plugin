@@ -1,26 +1,43 @@
-what3words Tools
-=====================
+# QGIS what3words Tools Plugin
 
-Tools to use what3words 3 word addresses in QGIS
--------------------------------------
+## Tools to use what3words 3 word addresses in QGIS
 
-The plugin contains 2 tools:
+The plugin contains 3 tools:
 
-- Zoom to 3 word address
-- what3words map tool
+- zoom to 3 word address tool
+- 3 word address map tool
+- add 3 word addresses processing algorithm
 
-To use the map tool, select the *what3words map tool* item in the what3words tools menu.
+### Plugin Configuration
 
-The map tool will get activated. When you now click with your mouse on the QGIS map canvas, the 3 word address corresponding to the mouse position will be displayed in the QGIS message bar.
+To use what3words, you'll need an API key, which can be signed up for [here](https://map.what3words.com/register?dev=true).
+Once you have an API key, this should be configured in the plugin via the *Plugins > what3words > Set API Key* menu item.
 
-.. image:: docs/imgs/messagebar.png
+.. image:: docs/imgs/1-api-key.png
 
-The *Zoom to 3 word address* tool allows you to zoom to a given 3 word address. Enter the 3 word address as three words separated by dots.
+If you haven't configured an API key, you will be prompted to enter one when calling any of the tools the plugin provides.
 
-.. image:: docs/imgs/zoomto.png
+### Zoom to 3 Word Address Tool
 
-To use the what3words service, you need an API key. You can sign up for an API key at http://developer.what3words.com/ and set the API key using the *Set API key menu*
+The *Zoom to 3 word address* tool is activated via the *Plugins > what3words > Zoom to 3 word address* menu item and
+allows you to enter a 3 word address, which
+should be specified as *word.word.word*. If valid, the map will display and zoom to the 3 word address.
 
-.. image:: docs/imgs/apikey.png
+.. image:: docs/imgs/2-zoom-to.png
 
-If you haven't set up an API key, you will be prompted to enter one when calling any of the tools described above.
+### 3 Word Address Map Tool
+
+The *what3words map tool* is activated via the *Plugins > what3words > what3words map tool* menu item.
+When activated, clicking anywhere on the QGIS map canvas with your mouse will display the
+3 word address that corresponds to the mouse position in the QGIS message bar.
+
+.. image:: docs/imgs/3-map-tool.png
+
+### Add 3 word Addresses Processing Algorithm
+
+The plugin adds an additional processing algorithm to QGIS which allows you
+to determine the 3 word address for any points in an updatable layer and add them
+as a new field called *3WordAddr*. The algorithm is available in the QGIS
+*Processing Toolbox* under *what3words tools > what3words tools > Add 3 word address field to points layer*.
+
+.. image:: docs/imgs/4-processing.png
