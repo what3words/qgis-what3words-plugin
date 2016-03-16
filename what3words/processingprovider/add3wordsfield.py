@@ -16,7 +16,7 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
     OUTPUT = 'OUTPUT'
 
     def processAlgorithm(self, progress):
-        apik = apikey(False) 
+        apik = apikey(False)
         if apik is None:
              raise GeoAlgorithmExecutionException("what3words API key is not defined")
         w3w = what3words(apikey=apik)
@@ -25,12 +25,12 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
         vprovider = layer.dataProvider()
         fields = vprovider.fields()
         caps = layer.dataProvider().capabilities()
-        if not (caps & QgsVectorDataProvider.AddAttributes):            
+        if not (caps & QgsVectorDataProvider.AddAttributes):
             raise GeoAlgorithmExecutionException("The selected layer does not support adding new attributes.")
 
-        idxField = fields.indexFromName("3_words")
+        idxField = fields.indexFromName("3WordAddr")
         if idxField == -1:
-            vprovider.addAttributes([QgsField("3_words", QVariant.String)])        
+            vprovider.addAttributes([QgsField("3WordAddr", QVariant.String)])
             layer.updateFields()
             idxField = len(fields)
         nFeat = layer.featureCount()
@@ -46,11 +46,11 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
             except Exception,e :
                 threeWords = ""
             layer.dataProvider().changeAttributeValues({feat.id() : {idxField: threeWords}})
-            
+
         self.setOutputValue(self.OUTPUT, filename)
 
     def defineCharacteristics(self):
-        self.name = 'Add 3 words field to points layer'
+        self.name = 'Add 3 word address field to points layer'
         self.i18n_name = self.name
         self.group = 'what3words tools'
         self.i18n_group = self.group
