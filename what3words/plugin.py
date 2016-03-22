@@ -27,6 +27,7 @@ class W3WTools:
             from qgistester.tests import addTestModule
             addTestModule(testerplugin, "what3words")
         except:
+            raise
             pass
 
 
@@ -57,9 +58,9 @@ class W3WTools:
 
         self.iface.mapCanvas().mapToolSet.connect(self.unsetTool)
 
-        self.zoomTo = W3WCoordInputDialog(self.iface.mapCanvas(), self.iface.mainWindow())
-        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.zoomTo)
-        self.zoomTo.hide()
+        self.zoomToDialog = W3WCoordInputDialog(self.iface.mapCanvas(), self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.zoomToDialog)
+        self.zoomToDialog.hide()
 
         if processingOk:
             Processing.addProvider(self.provider)
@@ -67,8 +68,8 @@ class W3WTools:
     def zoomTo(self):
         if apikey() is None:
             return
-        self.zoomTo.setApiKey(apikey())
-        self.zoomTo.show()
+        self.zoomToDialog.setApiKey(apikey())
+        self.zoomToDialog.show()
 
     def unsetTool(self, tool):
         try:
