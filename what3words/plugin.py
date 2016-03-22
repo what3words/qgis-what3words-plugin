@@ -27,7 +27,6 @@ class W3WTools:
             from qgistester.tests import addTestModule
             addTestModule(testerplugin, "what3words")
         except:
-            raise
             pass
 
 
