@@ -23,7 +23,7 @@ class W3WTools:
         self.iface = iface
 
         try:
-            from tests import testerplugin
+            from what3words.tests import testerplugin
             from qgistester.tests import addTestModule
             addTestModule(testerplugin, "what3words")
         except:
