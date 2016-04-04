@@ -56,7 +56,6 @@ class W3WCoordInputDialog(QtGui.QDockWidget):
             self.removeMarkerButton.setDisabled(False)
             self.coordBox.setStyleSheet("QLineEdit{background: white}")
         except Exception, e:
-            print e
             self.coordBox.setStyleSheet("QLineEdit{background: yellow}")
         finally:
             QtGui.QApplication.restoreOverrideCursor()

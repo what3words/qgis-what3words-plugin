@@ -29,7 +29,7 @@ def functionalTests():
     w3wTest.addStep("Move map canvas", lambda: iface.mapCanvas().setCenter(QgsPoint(0, 0)))
     w3wTest.addStep("Open panel", _zoomTo)
     w3wTest.addStep("Enter 'healings.distorting.harsher' and click on 'zoom to'. Verify it zooms to the polygon layer")
-
+    w3wTest.addStep("Click on 'remove marker' and verify it removes the marker")
     return [w3wTest]
 
 
