@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import math
 import os
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -9,6 +8,7 @@ from qgis.gui import *
 from maptool import W3WMapTool
 from coorddialog import W3WCoordInputDialog
 from apikey import *
+
 try:
     from processing.core.Processing import Processing
     from processingprovider.w3wprovider import W3WProvider
@@ -29,14 +29,12 @@ class W3WTools:
         except:
             pass
 
-
         self.mapTool = None
         if processingOk:
             self.provider = W3WProvider()
 
     def initGui(self):
-
-        mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "w3w.svg"))
+        mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "w3w.png"))
         self.toolAction = QAction(mapToolIcon, "what3words map tool",
                                      self.iface.mainWindow())
         self.toolAction.triggered.connect(self.setTool)
