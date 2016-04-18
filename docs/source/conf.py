@@ -220,6 +220,11 @@ latex_documents = [
 # If false, no module index is generated.
 #latex_domain_indices = True
 
+# Substitutions
+rst_epilog = """
+.. |BLQGIS| replace:: *QGIS for OpenGeo Suite*
+.. |current_plugin| replace:: *What3words Plugin*
+"""
 
 # -- Options for manual page output ---------------------------------------
 

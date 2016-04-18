@@ -3,14 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to QGIS what3words Plugin's documentation!
-==================================================
+What3words QGIS Plugin Documentation
+====================================
+
+The What3words plugin is a QGIS plugin that enables the users to use what3words 3 word addresses in QGIS.
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   installation
    w3w
 
 
