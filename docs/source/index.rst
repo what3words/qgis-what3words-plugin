@@ -15,7 +15,7 @@ Contents:
 
    installation
    configuration
-   w3w
+   usage
 
 
 Indices and tables
