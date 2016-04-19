@@ -9,17 +9,9 @@ The plugin contains 3 tools:
 - 3 word address map tool
 - add 3 word addresses processing algorithm
 
-Plugin Configuration
-=======================
+.. note::
 
-To use what3words, you'll need an API key, which can be signed up for `here <https://map.what3words.com/register?dev=true>`_.
-Once you have an API key, this should be configured in the plugin via the *Plugins > what3words > Set API Key* menu item.
-
-.. image:: 1-api-key.png
-	:align: center
-
-
-If you haven't configured an API key, you will be prompted to enter one when calling any of the tools the plugin provides.
+   If you didn't configured an API key (see :ref:`configuration`), you will be prompted to enter one when calling any of the tools the plugin provides.
 
 Zoom to 3 Word Address Tool
 ============================
