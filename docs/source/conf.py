@@ -222,7 +222,7 @@ latex_documents = [
 
 # Substitutions
 rst_epilog = """
-.. |BLQGIS| replace:: *QGIS for OpenGeo Suite*
+.. |BLQGIS| replace:: *Bouldless Desktop*
 .. |current_plugin| replace:: *What3words Plugin*
 """
 
