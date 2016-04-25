@@ -35,7 +35,7 @@ class W3WMapTool(QgsMapTool):
         pt = self.toMapCoordinates(e.pos())
         w3wCoord = self.toW3W(pt)
         if w3wCoord:
-            iface.messageBar().pushMessage("what3words", "3 Word Addres: '%' copied to clipboard" % w3wCoord, level=QgsMessageBar.INFO, duration=6)
+            iface.messageBar().pushMessage("what3words", "3 Word Addres: '{}' copied to clipboard".format(w3wCoord), level=QgsMessageBar.INFO, duration=6)
             clipboard = QApplication.clipboard()
             clipboard.setText(w3wCoord)
         else:
