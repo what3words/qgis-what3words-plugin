@@ -18,7 +18,7 @@ class W3WMapTool(QgsMapTool):
 
     def toW3W(self, pt):
         canvas = iface.mapCanvas()
-        canvasCrs = canvas.mapRenderer().destinationCrs()
+        canvasCrs = canvas.mapSettings().destinationCrs()
         transform = QgsCoordinateTransform(canvasCrs, self.epsg4326)
         pt4326 = transform.transform(pt.x(), pt.y())
         try:

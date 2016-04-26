@@ -42,7 +42,7 @@ class W3WCoordInputDialog(QtGui.QDockWidget):
             w3wCoord = str(self.coordBox.text()).replace(" ", "")
             QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             lat, lon = self.w3w.getPosition(w3wCoord)["position"]
-            canvasCrs = self.canvas.mapRenderer().destinationCrs()
+            canvasCrs = self.canvas.mapSettings().destinationCrs()
             epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
             transform4326 = QgsCoordinateTransform(epsg4326, canvasCrs)
             center = transform4326.transform(lon, lat)
