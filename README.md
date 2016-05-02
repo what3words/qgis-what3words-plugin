@@ -41,3 +41,14 @@ as a new field called *3WordAddr*. The algorithm is available in the QGIS
 *Processing Toolbox* under *what3words tools > what3words tools > Add 3 word address field to points layer*.
 
 ![Processing Algorithm](docs/source/4-processing.png)
+
+Cloning this repository
+=======================
+
+This repository uses external repositories as submodules. Therefore in order to include the external repositories during cloning you should use the *--recursive* option:
+
+git clone --recursive http://github.com/boundlessgeo/qgis-what3words-plugin.git
+
+Also, to update the submodules whenever there are changes in the remote repositories one should do:
+
+git submodule update --remote
