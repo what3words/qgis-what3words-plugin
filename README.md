@@ -1,4 +1,4 @@
-# what3words Tools
+# What3words tools
 
 What3words tools is a plugin for QGIS that enables the users to use what3words 3 word addresses in it.
 
