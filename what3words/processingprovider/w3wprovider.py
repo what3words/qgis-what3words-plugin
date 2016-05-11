@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+#
+# (c) 2016 Boundless, http://boundlessgeo.com
+# This code is licensed under the GPL 2.0 license.
+#
 import os
 from processing.core.AlgorithmProvider import AlgorithmProvider
 from add3wordsfield import Add3WordsFieldAlgorithm
@@ -31,6 +36,6 @@ class W3WProvider(AlgorithmProvider):
 
     def getIcon(self):
         return QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "w3w.png"))
-        
+
     def _loadAlgorithms(self):
         self.algs = self.alglist

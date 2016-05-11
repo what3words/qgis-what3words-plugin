@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+#
+# (c) 2016 Boundless, http://boundlessgeo.com
+# This code is licensed under the GPL 2.0 license.
+#
+
 # Tests for the QGIS Tester plugin. To know more see
 # https://github.com/boundlessgeo/qgis-tester-plugin
 
@@ -35,5 +41,5 @@ def functionalTests():
 
 def unitTests():
     _tests = []
-    #add unit tests with _tests.extend(test_suite)    
+    #add unit tests with _tests.extend(test_suite)
     return _tests
