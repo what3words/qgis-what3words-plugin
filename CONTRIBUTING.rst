@@ -29,7 +29,6 @@ The project committers:
 
 * `Victor Olaya <https://github.com/volaya>`_ (Boundless)
 * `Alexandre Neto <https://github.com/SrNetoChan>`_ (Boundless)
-* `Gary Gale <https://github.com/vicchi>`_
 * `Alexander Bruy <https://github.com/alexbruy>`_ (Boundless)
 * `Larry Shaffer <https://github.com/dakcarto>`_ (Boundless)
 * `Luigi Pirelli <https://github.com/luipir>`_ (Boundless)
