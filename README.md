@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/boundlessgeo/qgis-what3words-plugin.svg?branch=master)](https://travis-ci.org/boundlessgeo/qgis-what3words-plugin)
+
 # What3words tools
 
 What3words tools is a plugin for QGIS that enables the users to use what3words 3 word addresses in it.
