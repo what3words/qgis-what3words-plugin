@@ -28,7 +28,7 @@ class W3WMapTool(QgsMapTool):
         pt4326 = transform.transform(pt.x(), pt.y())
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
-            w3wCoords = ".".join(self.w3w.getWords(pt4326.y(), pt4326.x())["words"])
+            w3wCoords = self.w3w.reverseGeocode(pt4326.y(), pt4326.x())["words"]
         except Exception,e :
             w3wCoords = None
         finally:
@@ -40,8 +40,8 @@ class W3WMapTool(QgsMapTool):
         pt = self.toMapCoordinates(e.pos())
         w3wCoord = self.toW3W(pt)
         if w3wCoord:
-            iface.messageBar().pushMessage("what3words", "3 Word Addres: '{}' copied to clipboard".format(w3wCoord), level=QgsMessageBar.INFO, duration=6)
+            iface.messageBar().pushMessage("what3words", "The 3 word address: '{}' has been copied to the clipboard".format(w3wCoord), level=QgsMessageBar.INFO, duration=6)
             clipboard = QApplication.clipboard()
             clipboard.setText(w3wCoord)
         else:
-            iface.messageBar().pushMessage("what3words", "Could not converted the selected point 3 word address.", level=QgsMessageBar.WARNING, duration=3)
+            iface.messageBar().pushMessage("what3words", "Could not convert the selected point to a 3 word address", level=QgsMessageBar.WARNING, duration=3)

@@ -47,7 +47,8 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
             pt = feat.geometry().vertexAt(0)
             try:
                 pt4326 = transform.transform(pt.x(), pt.y())
-                threeWords = ".".join(w3w.getWords(pt4326.y(), pt4326.x())["words"])
+                threeWords = self.w3w.reverseGeocode(pt4326.y(), pt4326.x())["words"]
+
             except Exception,e :
                 threeWords = ""
             layer.dataProvider().changeAttributeValues({feat.id() : {idxField: threeWords}})
