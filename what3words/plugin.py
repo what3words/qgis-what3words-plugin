@@ -96,3 +96,10 @@ class W3WTools:
         self.iface.removeDockWidget(self.zoomToDialog)
         if processingOk:
             Processing.removeProvider(self.provider)
+
+        try:
+            from what3words.tests import testerplugin
+            from qgistester.tests import removeTestModule
+            removeTestModule(testerplugin, "what3words")
+        except:
+            pass
