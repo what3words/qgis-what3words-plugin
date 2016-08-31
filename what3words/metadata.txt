@@ -11,7 +11,7 @@ email=volaya@boundlessgeo.com
 icon=w3w.png
 tags=
 
-homepage=https://github.com/boundlessgeo/qgis-what3words-plugin
+homepage=https://connect.boundlessgeo.com/docs/desktop/plugins/what3words/
 tracker=https://github.com/boundlessgeo/qgis-what3words-plugin/issues
 repository=https://github.com/boundlessgeo/qgis-what3words-plugin
 
