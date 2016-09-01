@@ -6,10 +6,10 @@ category=Plugins
 qgisMinimumVersion=2.0
 version=1.0
 
-author=Boundless
-email=volaya@boundlessgeo.com
+author=Boundless (Victor Olaya)
+email=info@boundlessgeo.com
 
-icon=w3w.png
+icon=icons/desktop.png
 tags=boundless,what3words,address
 
 homepage=https://connect.boundlessgeo.com/docs/desktop/plugins/what3words/
