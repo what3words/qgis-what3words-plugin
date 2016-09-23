@@ -11,6 +11,7 @@ from qgis.gui import *
 from maptool import W3WMapTool
 from coorddialog import W3WCoordInputDialog
 from apikey import *
+import webbrowser
 
 try:
     from processing.core.Processing import Processing
@@ -55,6 +56,12 @@ class W3WTools:
                                      self.iface.mainWindow())
         self.apikeyAction.triggered.connect(askForApiKey)
         self.iface.addPluginToMenu("what3words", self.apikeyAction)
+
+        helpIcon = QgsApplication.getThemeIcon('/mActionHelpAPI.png')
+        self.helpAction = QAction(helpIcon, "what3words Plugin Help", self.iface.mainWindow())
+        self.helpAction.setObjectName("what3wordsHelp")
+        self.helpAction.triggered.connect(lambda: webbrowser.open_new("file://" + os.path.join(os.path.dirname(__file__), "docs", "html", "index.html")))
+        self.iface.addPluginToMenu("what3words", self.helpAction)  
 
         self.iface.mapCanvas().mapToolSet.connect(self.unsetTool)
 
