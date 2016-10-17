@@ -45,7 +45,7 @@ Along with that, for the users best convenience, the 3 word address is also copi
 Add 3 word Addresses Processing Algorithm
 =========================================
 
-The |current_plugin| adds a processing algorithm to QGIS that allows you to determine the 3 word address for all features in an **updatable** point layer and add them in a field called *3WordAddr*. The algorithm is available in the QGIS in the *Processing Toolbox* under *what3words tools > what3words tools > Add 3 word address field to points layer*. In the algorithm dialog, select a point layer as :guilabel:`Input layer` and press :guilabel:`Run` as shown below.
+The |current_plugin| adds a processing algorithm to QGIS that allows you to determine the three word address for all features in an **updatable** point layer and add them in a field called *3WordAddr*. The algorithm is available in the QGIS in the *Processing Toolbox* under *what3words tools > what3words tools > Add 3 word address field to points layer*. In the algorithm dialog, select a point layer as :guilabel:`Input layer` and press :guilabel:`Run` as shown below.
 
 .. figure:: img/4-processing-algorithm-in-action.png
    :align: center

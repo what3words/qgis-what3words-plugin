@@ -43,7 +43,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'QGIS what3words Plugin'
+project = u'what3words Tools'
 copyright = u'2016 Boundless Spatial, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -113,7 +113,7 @@ html_theme_path = ['../themes']
 #html_title = None
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-#html_short_title = None
+html_short_title = project
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -196,7 +196,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'QGISwhat3wordsPlugin.tex', u'QGIS what3words Plugin Documentation',
+  ('index', 'QGISwhat3wordsPlugin.tex', u'what3words Tools Documentation',
    u'Victor Olaya', 'manual'),
 ]
 
@@ -223,7 +223,7 @@ latex_documents = [
 # Substitutions
 rst_epilog = """
 .. |BLQGIS| replace:: *Boundless Desktop*
-.. |current_plugin| replace:: *What3words Plugin*
+.. |current_plugin| replace:: *what3words Tools*
 """
 
 # -- Options for manual page output ---------------------------------------
@@ -231,7 +231,7 @@ rst_epilog = """
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'qgiswhat3wordsplugin', u'QGIS what3words Plugin Documentation',
+    ('index', 'qgiswhat3wordsplugin', u'what3words Tools Documentation',
      [u'Victor Olaya'], 1)
 ]
 
@@ -245,7 +245,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'QGISwhat3wordsPlugin', u'QGIS what3words Plugin Documentation',
+  ('index', 'QGISwhat3wordsPlugin', u'what3words Tools Documentation',
    u'Victor Olaya', 'QGISwhat3wordsPlugin', 'One line description of project.',
    'Miscellaneous'),
 ]
