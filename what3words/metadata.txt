@@ -9,7 +9,7 @@ version=1.0
 author=Boundless (Victor Olaya)
 email=info@boundlessgeo.com
 
-icon=icons/desktop.png
+icon=icons/desktop.svg
 tags=boundless,what3words,address
 
 homepage=https://connect.boundlessgeo.com/docs/desktop/plugins/what3words/
