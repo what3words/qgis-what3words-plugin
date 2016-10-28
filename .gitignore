@@ -1,3 +1,4 @@
 *.pyc
 what3words.zip
 travis_secrets.tar.gz
+docs/build
