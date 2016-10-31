@@ -5,7 +5,7 @@ about=<p>what3words is a global grid of 57 trillion 3mx3m squares. Each square h
 category=Plugins
 qgisMinimumVersion=2.0
 version=1.0
-roles=desktop-qgis-plugin-w3w
+#roles=desktop-qgis-plugin-w3w
 
 author=Boundless (Victor Olaya)
 email=info@boundlessgeo.com
