@@ -1,13 +1,24 @@
+from builtins import str
 # -*- coding: utf-8 -*-
 #
 # (c) 2016 Boundless, http://boundlessgeo.com
 # This code is licensed under the GPL 2.0 license.
 #
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import QDockWidget, QLabel, QLineEdit, QPushButton, QHBoxLayout, QWidget, QApplication, QCursor
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import (QDockWidget,
+                                 QLabel,
+                                 QLineEdit,
+                                 QPushButton,
+                                 QHBoxLayout,
+                                 QWidget,
+                                 QApplication
+                                )
+from qgis.PyQt.QtGui import QCursor
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform
+from qgis.core import (QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransform
+                      )
 from qgis.gui import QgsVertexMarker
 
 from wtat3words.w3w import what3words
@@ -65,7 +76,7 @@ class W3WCoordInputDialog(QDockWidget):
             self.marker.setPenWidth(4)
             self.removeMarkerButton.setDisabled(False)
             self.coordBox.setStyleSheet("QLineEdit{background: white}")
-        except Exception, e:
+        except Exception as e:
             self.coordBox.setStyleSheet("QLineEdit{background: yellow}")
         finally:
             QApplication.restoreOverrideCursor()

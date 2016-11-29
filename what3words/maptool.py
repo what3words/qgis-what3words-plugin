@@ -4,8 +4,9 @@
 # This code is licensed under the GPL 2.0 license.
 #
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import QApplication, QCursor
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QApplication
+from qgis.PyQt.QtGui import QCursor
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform
 from qgis.gui import QgsMapTool, QgsMessageBar
@@ -31,7 +32,7 @@ class W3WMapTool(QgsMapTool):
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
             w3wCoords = self.w3w.reverseGeocode(pt4326.y(), pt4326.x())["words"]
-        except Exception,e :
+        except Exception as e :
             w3wCoords = None
         finally:
             QApplication.restoreOverrideCursor()

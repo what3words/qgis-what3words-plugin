@@ -4,7 +4,7 @@
 # This code is licensed under the GPL 2.0 license.
 #
 import os
-from PyQt4.QtGui import QIcon
+from qgis.PyQt.QtGui import QIcon
 
 from processing.core.AlgorithmProvider import AlgorithmProvider
 from processingprovider.add3wordsfield import Add3WordsFieldAlgorithm

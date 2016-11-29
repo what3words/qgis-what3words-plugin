@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from builtins import object
 # -*- coding: utf-8 -*-
 #
 # (c) 2016 Boundless, http://boundlessgeo.com
@@ -7,8 +9,9 @@
 import os
 import webbrowser
 
-from PyQt4.QtCore import Qt
-from PyQt4.QtGui import QIcon, QAction
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction
 
 from qgis.core import QgsApplication
 
@@ -18,13 +21,13 @@ from what3words.apikey import apikey, askForApiKey
 
 try:
     from processing.core.Processing import Processing
-    from processingprovider.w3wprovider import W3WProvider
+    from .processingprovider.w3wprovider import W3WProvider
     processingOk = True
 except:
     raise
     processingOk = False
 
-class W3WTools:
+class W3WTools(object):
 
     def __init__(self, iface):
         self.iface = iface

@@ -4,8 +4,8 @@
 # This code is licensed under the GPL 2.0 license.
 #
 import os
-from PyQt4.QtCore import QVariant
-from PyQt4.QtGui import QIcon
+from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtGui import QIcon
 
 from qgis.core import QgsVectorDataProvider, QgsField, QgsCoordinateReferenceSystem, QgsCoordinateTransform
 
@@ -51,7 +51,7 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
                 pt4326 = transform.transform(pt.x(), pt.y())
                 threeWords = self.w3w.reverseGeocode(pt4326.y(), pt4326.x())["words"]
 
-            except Exception,e :
+            except Exception as e :
                 threeWords = ""
             layer.dataProvider().changeAttributeValues({feat.id() : {idxField: threeWords}})
 
