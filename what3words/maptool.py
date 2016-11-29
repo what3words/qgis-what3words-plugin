@@ -3,13 +3,16 @@
 # (c) 2016 Boundless, http://boundlessgeo.com
 # This code is licensed under the GPL 2.0 license.
 #
-from qgis.core import *
-from qgis.gui import *
+
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import QApplication, QCursor
+
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform
+from qgis.gui import QgsMapTool, QgsMessageBar
 from qgis.utils import iface
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from w3w import what3words
-from apikey import apikey
+
+from what3words.w3w import what3words
+from what3words.apikey import apikey
 
 class W3WMapTool(QgsMapTool):
 
@@ -18,7 +21,6 @@ class W3WMapTool(QgsMapTool):
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)
         self.setCursor(Qt.CrossCursor)
-        print apikey()
         self.w3w = what3words(apikey=apikey())
 
     def toW3W(self, pt):

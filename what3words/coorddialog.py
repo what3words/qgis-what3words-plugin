@@ -3,19 +3,22 @@
 # (c) 2016 Boundless, http://boundlessgeo.com
 # This code is licensed under the GPL 2.0 license.
 #
-from PyQt4 import QtGui, QtCore
-from qgis.core import *
-from qgis.gui import *
-from qgis.utils import *
-from w3w import what3words
-from apikey import apikey
 
-class W3WCoordInputDialog(QtGui.QDockWidget):
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import QDockWidget, QLabel, QLineEdit, QPushButton, QHBoxLayout, QWidget, QApplication, QCursor
+
+from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform
+from qgis.gui import QgsVertexMarker
+
+from wtat3words.w3w import what3words
+from what3words.apikey import apikey
+
+class W3WCoordInputDialog(QDockWidget):
     def __init__(self, canvas, parent):
         self.canvas = canvas
         self.marker = None
-        QtGui.QDockWidget.__init__(self, parent)
-        self.setAllowedAreas(QtCore.Qt.TopDockWidgetArea)
+        QDockWidget.__init__(self, parent)
+        self.setAllowedAreas(Qt.TopDockWidgetArea)
         self.initGui()
 
     def setApiKey(self, apikey):
@@ -23,29 +26,29 @@ class W3WCoordInputDialog(QtGui.QDockWidget):
 
     def initGui(self):
         self.setWindowTitle("Zoom to 3 word address")
-        self.label = QtGui.QLabel('3 Word Address')
-        self.coordBox = QtGui.QLineEdit()
+        self.label = QLabel('3 Word Address')
+        self.coordBox = QLineEdit()
         self.coordBox.returnPressed.connect(self.zoomToPressed)
-        self.zoomToButton = QtGui.QPushButton("Zoom to")
+        self.zoomToButton = QPushButton("Zoom to")
         self.zoomToButton.clicked.connect(self.zoomToPressed)
-        self.removeMarkerButton = QtGui.QPushButton("Remove marker")
+        self.removeMarkerButton = QPushButton("Remove marker")
         self.removeMarkerButton.clicked.connect(self.removeMarker)
         self.removeMarkerButton.setDisabled(True)
-        self.hlayout = QtGui.QHBoxLayout()
+        self.hlayout = QHBoxLayout()
         self.hlayout.setSpacing(6)
         self.hlayout.setMargin(9)
         self.hlayout.addWidget(self.label)
         self.hlayout.addWidget(self.coordBox)
         self.hlayout.addWidget(self.zoomToButton)
         self.hlayout.addWidget(self.removeMarkerButton)
-        self.dockWidgetContents = QtGui.QWidget()
+        self.dockWidgetContents = QWidget()
         self.dockWidgetContents.setLayout(self.hlayout)
         self.setWidget(self.dockWidgetContents)
 
     def zoomToPressed(self):
         try:
             w3wCoord = str(self.coordBox.text()).replace(" ", "")
-            QtGui.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
             json = self.w3w.forwardGeocode(w3wCoord)
             lat = float(json["geometry"]["lat"])
             lon = float(json["geometry"]["lng"])
@@ -65,7 +68,7 @@ class W3WCoordInputDialog(QtGui.QDockWidget):
         except Exception, e:
             self.coordBox.setStyleSheet("QLineEdit{background: yellow}")
         finally:
-            QtGui.QApplication.restoreOverrideCursor()
+            QApplication.restoreOverrideCursor()
 
     def removeMarker(self):
         self.canvas.scene().removeItem(self.marker)

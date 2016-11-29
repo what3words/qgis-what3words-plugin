@@ -6,7 +6,9 @@
 import os
 from PyQt4.QtCore import QVariant
 from PyQt4.QtGui import QIcon
-from qgis.core import *
+
+from qgis.core import QgsVectorDataProvider, QgsField, QgsCoordinateReferenceSystem, QgsCoordinateTransform
+
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import ParameterVector
 from processing.core.outputs import OutputVector

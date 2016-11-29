@@ -4,9 +4,11 @@
 # This code is licensed under the GPL 2.0 license.
 #
 import os
-from processing.core.AlgorithmProvider import AlgorithmProvider
-from add3wordsfield import Add3WordsFieldAlgorithm
 from PyQt4.QtGui import QIcon
+
+from processing.core.AlgorithmProvider import AlgorithmProvider
+from processingprovider.add3wordsfield import Add3WordsFieldAlgorithm
+
 
 class W3WProvider(AlgorithmProvider):
 
@@ -23,10 +25,8 @@ class W3WProvider(AlgorithmProvider):
     def initializeSettings(self):
         AlgorithmProvider.initializeSettings(self)
 
-
     def unload(self):
         AlgorithmProvider.unload(self)
-
 
     def getName(self):
         return 'what3words'

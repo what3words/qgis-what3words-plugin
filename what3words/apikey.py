@@ -17,6 +17,7 @@ def apikey(ask = True):
             askForApiKey()
     return _apikey
 
+
 def askForApiKey():
     global _apikey
     text, ok = QInputDialog.getText(iface.mainWindow(), 'what3words', 'Enter the API Key:')

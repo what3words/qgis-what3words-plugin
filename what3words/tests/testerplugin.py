@@ -7,8 +7,8 @@
 # Tests for the QGIS Tester plugin. To know more see
 # https://github.com/boundlessgeo/qgis-tester-plugin
 
-from qgis.utils import *
-from qgis.core import *
+from qgis.utils import iface
+from qgis.core import QgsMapLayerRegistry, QgsPoint
 
 def functionalTests():
     try:
@@ -31,7 +31,7 @@ def functionalTests():
     w3wTest = Test("Test w3w")
     w3wTest.addStep("Load layer", _loadLayer)
     w3wTest.addStep("Select map tool", _setTool)
-    w3wTest.addStep("Click within the layer polygon and verify that the computed 3 coords are 'healings.distorting.harsher'", isVerifyStep = True)
+    w3wTest.addStep("Click within the layer polygon and verify that the computed 3 coords are 'healings.distorting.harsher'", isVerifyStep=True)
     w3wTest.addStep("Move map canvas", lambda: iface.mapCanvas().setCenter(QgsPoint(0, 0)))
     w3wTest.addStep("Open panel", _zoomTo)
     w3wTest.addStep("Enter 'healings.distorting.harsher' and click on 'zoom to'. Verify it zooms to the polygon layer")

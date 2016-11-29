@@ -3,15 +3,18 @@
 # (c) 2016 Boundless, http://boundlessgeo.com
 # This code is licensed under the GPL 2.0 license.
 #
+
 import os
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from qgis.core import *
-from qgis.gui import *
-from maptool import W3WMapTool
-from coorddialog import W3WCoordInputDialog
-from apikey import *
 import webbrowser
+
+from PyQt4.QtCore import Qt
+from PyQt4.QtGui import QIcon, QAction
+
+from qgis.core import QgsApplication
+
+from what3words.maptool import W3WMapTool
+from what3words.coorddialog import W3WCoordInputDialog
+from what3words.apikey import apikey, askForApiKey
 
 try:
     from processing.core.Processing import Processing
@@ -61,7 +64,7 @@ class W3WTools:
         self.helpAction = QAction(helpIcon, "what3words Plugin Help", self.iface.mainWindow())
         self.helpAction.setObjectName("what3wordsHelp")
         self.helpAction.triggered.connect(lambda: webbrowser.open_new("file://" + os.path.join(os.path.dirname(__file__), "docs", "html", "index.html")))
-        self.iface.addPluginToMenu("what3words", self.helpAction)  
+        self.iface.addPluginToMenu("what3words", self.helpAction)
 
         self.iface.mapCanvas().mapToolSet.connect(self.unsetTool)
 
