@@ -7,6 +7,11 @@ import os
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtGui import QIcon
 
+try:
+    from qgis.core import  Qgis
+except ImportError:
+    from qgis.core import  QGis as Qgis
+
 from qgis.core import QgsVectorDataProvider, QgsField, QgsCoordinateReferenceSystem, QgsCoordinateTransform
 
 from processing.core.GeoAlgorithm import GeoAlgorithm
@@ -14,6 +19,7 @@ from processing.core.parameters import ParameterVector
 from processing.core.outputs import OutputVector
 from processing.tools import dataobjects, vector
 from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
+
 from what3words.w3w import what3words
 from what3words.apikey import apikey
 
@@ -62,8 +68,14 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
         self.i18n_name = self.name
         self.group = 'what3words tools'
         self.i18n_group = self.group
-        self.addParameter(ParameterVector(self.INPUT,
-                                          'Input layer', [ParameterVector.VECTOR_TYPE_POINT]))
+
+        if Qgis.QGIS_VERSION_INT < 29900:
+            self.addParameter(ParameterVector(self.INPUT,
+                                              'Input layer', [ParameterVector.VECTOR_TYPE_POINT]))
+        else:
+            self.addParameter(ParameterVector(self.INPUT,
+                                              'Input layer', [dataobjects.TYPE_VECTOR_POINT]))
+
         self.addOutput(OutputVector(self.OUTPUT, 'Output', True))
 
     def getIcon(self):

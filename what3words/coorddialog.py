@@ -21,7 +21,7 @@ from qgis.core import (QgsCoordinateReferenceSystem,
                       )
 from qgis.gui import QgsVertexMarker
 
-from wtat3words.w3w import what3words
+from what3words.w3w import what3words
 from what3words.apikey import apikey
 
 class W3WCoordInputDialog(QDockWidget):

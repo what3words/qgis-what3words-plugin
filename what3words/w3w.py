@@ -20,8 +20,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
-import urllib
-import urllib2
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import json
 
 class what3words(object):
@@ -47,9 +50,9 @@ class what3words(object):
 
     def postRequest(self, url, params):
         params.update({'key': self.apikey})
-        encparams = urllib.urlencode(params)
+        encparams = urllib.parse.urlencode(params)
         url = url + '?' + encparams
-        try: response = urllib.urlopen(url).read()
+        try: response = urllib.request.urlopen(url).read()
         except URLError as e:
             raise e
         return json.loads(response)

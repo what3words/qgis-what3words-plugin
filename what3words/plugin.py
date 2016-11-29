@@ -21,7 +21,7 @@ from what3words.apikey import apikey, askForApiKey
 
 try:
     from processing.core.Processing import Processing
-    from .processingprovider.w3wprovider import W3WProvider
+    from what3words.processingprovider.w3wprovider import W3WProvider
     processingOk = True
 except:
     raise
