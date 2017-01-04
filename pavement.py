@@ -13,12 +13,15 @@ options(
     plugin = Bunch(
         name = 'what3words',
         source_dir = path('what3words'),
+        ext_libs = path('what3words/ext-libs'),
+        ext_src = path('what3words/ext-src'),
         package_dir = path('.'),
         tests = ['tests'],
         excludes = [
             '*.pyc',
             '.git',
-            '*.pro'
+            '*.pro',
+            'ext-src',
         ],
         # skip certain files inadvertently found by exclude pattern globbing
         skip_exclude = []
@@ -34,11 +37,26 @@ options(
 
 @task
 def setup():
-    """Empty: to ensure we use the same build/install procedure for all our plugins"""
-    pass
+    """Install run-time dependencies"""
+    clean = getattr(options, 'clean', False)
+    ext_libs = options.plugin.ext_libs
+    ext_src = options.plugin.ext_src
+    if clean:
+        ext_libs.rmtree()
+    ext_libs.makedirs()
 
-def _install(folder):
+    runtime, test = read_requirements()
+    os.environ['PYTHONPATH'] = ext_libs.abspath()
+    for req in runtime + test:
+        sh('easy_install -a -d %(ext_libs)s %(dep)s' % {
+            'ext_libs': ext_libs.abspath(),
+            'dep': req
+        })
+
+
+def _install(folder, options):
     '''install plugin to qgis'''
+    builddocs(options)
     plugin_name = options.plugin.name
     src = path(__file__).dirname() / plugin_name
     dst = path('~').expanduser() / folder / 'python' / 'plugins' / plugin_name
@@ -49,18 +67,26 @@ def _install(folder):
         src.copytree(dst)
     elif not dst.exists():
         src.symlink(dst)
+    # Symlink the build folder to the parent
+    docs = path('..') / '..' / "docs" / 'build' / 'html'
+    docs_dest = path(__file__).dirname() / plugin_name / "docs"
+    docs_link = docs_dest / 'html'
+    if not docs_dest.exists():
+        docs_dest.mkdir()
+    if not docs_link.islink():
+        docs.symlink(docs_link)
 
 @task
 def install(options):
-    _install(".qgis2")
+    _install(".qgis2", options)
 
 @task
 def installdev(options):
-    _install(".qgis-dev")
+    _install(".qgis-dev", options)
 
 @task
 def install3(options):
-    _install(".qgis3")
+    _install(".qgis3", options)
 
 @task
 def install_devtools():
@@ -140,6 +166,22 @@ def autopep8(args):
 
         if p.fnmatch('*.py'):
             autopep8.fix_file(p, options=cmd_args)
+
+
+def read_requirements():
+    """Return a list of runtime and list of test requirements"""
+    lines = path('requirements.txt').lines()
+    lines = [ l for l in [ l.strip() for l in lines] if l ]
+    divider = '# test requirements'
+
+    try:
+        idx = lines.index(divider)
+    except ValueError:
+        raise BuildFailure(
+            'Expected to find "%s" in requirements.txt' % divider)
+
+    not_comments = lambda s,e: [ l for l in lines[s:e] if l[0] != '#']
+    return not_comments(0, idx), not_comments(idx+1, None)
 
 
 @task
