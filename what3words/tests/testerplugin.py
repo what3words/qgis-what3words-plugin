@@ -9,7 +9,7 @@
 
 import os
 
-from qgis.utils import iface
+from qgis.utils import iface, plugins
 from qgis.core import QgsMapLayerRegistry, QgsPoint
 
 def functionalTests():
