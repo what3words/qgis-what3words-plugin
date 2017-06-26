@@ -7,6 +7,8 @@
 # Tests for the QGIS Tester plugin. To know more see
 # https://github.com/boundlessgeo/qgis-tester-plugin
 
+import os
+
 from qgis.utils import iface
 from qgis.core import QgsMapLayerRegistry, QgsPoint
 
