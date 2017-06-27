@@ -24,7 +24,6 @@ try:
     from what3words.processingprovider.w3wprovider import W3WProvider
     processingOk = True
 except:
-    raise
     processingOk = False
 
 class W3WTools(object):
@@ -44,7 +43,7 @@ class W3WTools(object):
             self.provider = W3WProvider()
 
     def initGui(self):
-        mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "w3w.png"))
+        mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.png"))
         self.toolAction = QAction(mapToolIcon, "what3words map tool",
                                      self.iface.mainWindow())
         self.toolAction.triggered.connect(self.setTool)
