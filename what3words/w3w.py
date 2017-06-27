@@ -26,6 +26,7 @@ from builtins import object
 import urllib.request, urllib.parse, urllib.error
 import urllib.request, urllib.error, urllib.parse
 import json
+import requests
 
 class what3words(object):
     """what3words API"""
@@ -52,7 +53,6 @@ class what3words(object):
         params.update({'key': self.apikey})
         encparams = urllib.parse.urlencode(params)
         url = url + '?' + encparams
-        try: response = urllib.request.urlopen(url).read()
-        except URLError as e:
-            raise e
-        return json.loads(response)
+        r = requests.get(url)
+        r.raise_for_status()
+        return r.json()
