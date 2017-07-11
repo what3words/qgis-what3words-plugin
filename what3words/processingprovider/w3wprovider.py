@@ -10,6 +10,8 @@ from processing.core.AlgorithmProvider import AlgorithmProvider
 
 from what3words.processingprovider.add3wordsfield import Add3WordsFieldAlgorithm
 
+pluginPath = os.path.split(os.path.dirname(__file__))[0]
+
 
 class W3WProvider(AlgorithmProvider):
 
@@ -36,7 +38,7 @@ class W3WProvider(AlgorithmProvider):
         return 'what3words tools'
 
     def getIcon(self):
-        return QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "w3w.png"))
+        return QIcon(os.path.join(pluginPath, "icons", "w3w.png"))
 
     def _loadAlgorithms(self):
         self.algs = self.alglist
