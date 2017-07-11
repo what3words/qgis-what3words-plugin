@@ -32,20 +32,22 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
         apik = apikey(False)
         if apik is None:
              raise GeoAlgorithmExecutionException("what3words API key is not defined")
-        w3w = what3words(apikey=apik)
+
         filename = self.getParameterValue(self.INPUT)
         layer = dataobjects.getObjectFromUri(filename)
-        vprovider = layer.dataProvider()
-        fields = vprovider.fields()
-        caps = layer.dataProvider().capabilities()
+        provider = layer.dataProvider()
+        caps = provider.capabilities()
         if not (caps & QgsVectorDataProvider.AddAttributes):
             raise GeoAlgorithmExecutionException("The selected layer does not support adding new attributes.")
 
-        idxField = fields.indexFromName("3WordAddr")
+        idxField = layer.fieldNameIndex("3WordAddr")
         if idxField == -1:
-            vprovider.addAttributes([QgsField("3WordAddr", QVariant.String)])
+            provider.addAttributes([QgsField("3WordAddr", QVariant.String, "", 254, 0)])
             layer.updateFields()
-            idxField = len(fields)
+            idxField = layer.fieldNameIndex("3WordAddr")
+
+        w3w = what3words(apikey=apik)
+
         nFeat = layer.featureCount()
         epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
         transform = QgsCoordinateTransform(layer.crs(), epsg4326)
@@ -55,11 +57,12 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
             pt = feat.geometry().vertexAt(0)
             try:
                 pt4326 = transform.transform(pt.x(), pt.y())
-                threeWords = self.w3w.reverseGeocode(pt4326.y(), pt4326.x())["words"]
-
-            except Exception as e :
+                threeWords = w3w.reverseGeocode(pt4326.y(), pt4326.x())["words"]
+            except Exception as e:
+                progress.setDebugInfo("Failed to retrieve w3w address for feature {}:\n{}".format(feat.id(), str(e)))
                 threeWords = ""
-            layer.dataProvider().changeAttributeValues({feat.id() : {idxField: threeWords}})
+
+            provider.changeAttributeValues({feat.id() : {idxField: threeWords}})
 
         self.setOutputValue(self.OUTPUT, filename)
 
