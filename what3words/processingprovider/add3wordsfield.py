@@ -23,6 +23,9 @@ from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecution
 from what3words.w3w import what3words
 from what3words.apikey import apikey
 
+pluginPath = os.path.split(os.path.dirname(__file__))[0]
+
+
 class Add3WordsFieldAlgorithm(GeoAlgorithm):
 
     INPUT = 'INPUT'
@@ -82,4 +85,4 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
         self.addOutput(OutputVector(self.OUTPUT, 'Output', True))
 
     def getIcon(self):
-        return QIcon(os.path.join(os.path.dirname(os.path.dirname(__file__)), "w3w.png"))
+        return QIcon(os.path.join(pluginPath, "icons", "w3w.png"))
