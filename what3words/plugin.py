@@ -105,6 +105,7 @@ class W3WTools(object):
         self.iface.removePluginMenu("what3words", self.toolAction)
         self.iface.removePluginMenu("what3words", self.zoomToAction)
         self.iface.removePluginMenu("what3words", self.apikeyAction)
+        self.iface.removePluginMenu("what3words", self.helpAction)
         self.iface.removeDockWidget(self.zoomToDialog)
         if processingOk:
             Processing.removeProvider(self.provider)
