@@ -77,6 +77,13 @@ class W3WTools(object):
         if processingOk:
             Processing.addProvider(self.provider)
 
+        try:
+            from lessons import addLessonsFolder, addGroup
+            folder = os.path.join(os.path.dirname(__file__), "_lessons")
+            addLessonsFolder(folder, "what3words")
+        except:
+            pass
+
     def zoomTo(self):
         if apikey() is None:
             return
@@ -88,8 +95,9 @@ class W3WTools(object):
             if not isinstance(tool, W3WMapTool):
                 self.toolAction.setChecked(False)
         except:
+            # ignore exceptions thrown when unloading plugin, since
+            # map tool class might not exist already
             pass
-            #ignore exceptions thrown when unloading plugin, since map tool class might not exist already
 
     def setTool(self):
         if apikey() is None:
@@ -114,5 +122,12 @@ class W3WTools(object):
             from what3words.tests import testerplugin
             from qgistester.tests import removeTestModule
             removeTestModule(testerplugin, "what3words")
+        except:
+            pass
+
+        try:
+            from lessons import removeLessonsFolder
+            folder = os.path.join(pluginPath, '_lessons')
+            removeLessonsFolder(folder)
         except:
             pass
