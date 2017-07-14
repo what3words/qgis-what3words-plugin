@@ -13,7 +13,7 @@ from qgis.gui import QgsMapTool, QgsMessageBar
 from qgis.utils import iface
 
 from what3words.w3w import what3words
-from what3words.apikey import apikey
+from qgiscommons.settings import pluginSetting
 
 class W3WMapTool(QgsMapTool):
 
@@ -22,7 +22,8 @@ class W3WMapTool(QgsMapTool):
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)
         self.setCursor(Qt.CrossCursor)
-        self.w3w = what3words(apikey=apikey())
+        apiKey = pluginSetting("apiKey")
+        self.w3w = what3words(apikey=apiKey)
 
     def toW3W(self, pt):
         canvas = iface.mapCanvas()

@@ -21,7 +21,7 @@ from processing.tools import dataobjects, vector
 from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
 
 from what3words.w3w import what3words
-from what3words.apikey import apikey
+from qgiscommons.settings import pluginSetting
 
 pluginPath = os.path.split(os.path.dirname(__file__))[0]
 
@@ -32,8 +32,8 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
     OUTPUT = 'OUTPUT'
 
     def processAlgorithm(self, progress):
-        apik = apikey(False)
-        if apik is None:
+        apik = pluginSetting("apiKey")
+        if apik is None or apik == ""::
              raise GeoAlgorithmExecutionException("what3words API key is not defined")
 
         filename = self.getParameterValue(self.INPUT)

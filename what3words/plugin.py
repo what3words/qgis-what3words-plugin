@@ -13,16 +13,21 @@ from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
+from qgis.gui import QgsMessageBar
 from qgis.core import QgsApplication
+from qgis.utils import iface
 
 from what3words.maptool import W3WMapTool
 from what3words.coorddialog import W3WCoordInputDialog
-from what3words.apikey import apikey, askForApiKey
 
 from qgiscommons.gui import (addAboutMenu,
                              removeAboutMenu,
                              addHelpMenu,
                              removeHelpMenu)
+from qgiscommons.settings import (readSettings,
+                                  pluginSetting,
+                                  addSettingsMenu,
+                                  removeSettingsMenu)
 
 try:
     from processing.core.Processing import Processing
@@ -47,6 +52,8 @@ class W3WTools(object):
         if processingOk:
             self.provider = W3WProvider()
 
+        readSettings()
+
     def initGui(self):
         mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.png"))
         self.toolAction = QAction(mapToolIcon, "what3words map tool",
@@ -62,15 +69,12 @@ class W3WTools(object):
         self.zoomToAction.triggered.connect(self.zoomTo)
         self.iface.addPluginToMenu("what3words", self.zoomToAction)
 
-        self.apikeyAction = QAction("Set API key",
-                                     self.iface.mainWindow())
-        self.apikeyAction.triggered.connect(askForApiKey)
-        self.iface.addPluginToMenu("what3words", self.apikeyAction)
-
+        addSettingsMenu(
+            "what3words", self.iface.addPluginToMenu)
         addHelpMenu(
-            "what3words", self.iface.addPluginToRasterMenu)
+            "what3words", self.iface.addPluginToMenu)
         addAboutMenu(
-            "what3words", self.iface.addPluginToRasterMenu)
+            "what3words", self.iface.addPluginToMenu)
 
         self.iface.mapCanvas().mapToolSet.connect(self.unsetTool)
 
@@ -89,9 +93,11 @@ class W3WTools(object):
             pass
 
     def zoomTo(self):
-        if apikey() is None:
+        apikey = pluginSetting("apiKey")
+        if apikey is None or apikey == "":
+            self._showMessage('what3words API key is not set. Please set it and try again.', QgsMessageBar.WARNING)
             return
-        self.zoomToDialog.setApiKey(apikey())
+        self.zoomToDialog.setApiKey(apikey)
         self.zoomToDialog.show()
 
     def unsetTool(self, tool):
@@ -104,7 +110,9 @@ class W3WTools(object):
             pass
 
     def setTool(self):
-        if apikey() is None:
+        apikey = pluginSetting("apiKey")
+        if apikey is None or apikey == "":
+            self._showMessage('what3words API key is not set. Please set it and try again.', QgsMessageBar.WARNING)
             return
         if self.mapTool is None:
             self.mapTool = W3WMapTool(self.iface.mapCanvas())
@@ -116,10 +124,10 @@ class W3WTools(object):
         self.iface.removeToolBarIcon(self.toolAction)
         self.iface.removePluginMenu("what3words", self.toolAction)
         self.iface.removePluginMenu("what3words", self.zoomToAction)
-        self.iface.removePluginMenu("what3words", self.apikeyAction)
 
-        removeHelpMenu("Image Discovery")
-        removeAboutMenu("Image Discovery")
+        removeSettingsMenu("what3words")
+        removeHelpMenu("what3words")
+        removeAboutMenu("what3words")
 
         self.iface.removeDockWidget(self.zoomToDialog)
 
@@ -139,3 +147,7 @@ class W3WTools(object):
             removeLessonsFolder(folder)
         except:
             pass
+
+    def _showMessage(self, message, level=QgsMessageBar.INFO):
+        iface.messageBar().pushMessage(
+            message, level, iface.messageTimeout())
