@@ -1,4 +1,3 @@
 future
-requests
 qgiscommons
 # test requirements

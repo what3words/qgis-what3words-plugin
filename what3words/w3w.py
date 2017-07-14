@@ -23,10 +23,9 @@ SOFTWARE.
 from future import standard_library
 standard_library.install_aliases()
 from builtins import object
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
+import urllib.parse
 import json
-import requests
+from qgiscommons.network.networkaccessmanager import NetworkAccessManager
 
 class what3words(object):
     """what3words API"""
@@ -34,6 +33,7 @@ class what3words(object):
     def __init__(self, host='api.what3words.com', apikey=''):
         self.host = 'https://' + host
         self.apikey = apikey
+        self.nam = NetworkAccessManager()
 
     def forwardGeocode(self, words='index.home.raft', lang='en'):
         if isinstance(words, list):
@@ -53,6 +53,5 @@ class what3words(object):
         params.update({'key': self.apikey})
         encparams = urllib.parse.urlencode(params)
         url = url + '?' + encparams
-        r = requests.get(url)
-        r.raise_for_status()
-        return r.json()
+        r, data = self.nam.request(url)
+        return json.loads(data)
