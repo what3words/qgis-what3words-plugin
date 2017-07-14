@@ -19,6 +19,11 @@ from what3words.maptool import W3WMapTool
 from what3words.coorddialog import W3WCoordInputDialog
 from what3words.apikey import apikey, askForApiKey
 
+from qgiscommons.gui import (addAboutMenu,
+                             removeAboutMenu,
+                             addHelpMenu,
+                             removeHelpMenu)
+
 try:
     from processing.core.Processing import Processing
     from what3words.processingprovider.w3wprovider import W3WProvider
@@ -62,11 +67,10 @@ class W3WTools(object):
         self.apikeyAction.triggered.connect(askForApiKey)
         self.iface.addPluginToMenu("what3words", self.apikeyAction)
 
-        helpIcon = QgsApplication.getThemeIcon('/mActionHelpAPI.png')
-        self.helpAction = QAction(helpIcon, "what3words Plugin Help", self.iface.mainWindow())
-        self.helpAction.setObjectName("what3wordsHelp")
-        self.helpAction.triggered.connect(lambda: webbrowser.open_new("file://" + os.path.join(os.path.dirname(__file__), "docs", "html", "index.html")))
-        self.iface.addPluginToMenu("what3words", self.helpAction)
+        addHelpMenu(
+            "what3words", self.iface.addPluginToRasterMenu)
+        addAboutMenu(
+            "what3words", self.iface.addPluginToRasterMenu)
 
         self.iface.mapCanvas().mapToolSet.connect(self.unsetTool)
 
@@ -113,8 +117,12 @@ class W3WTools(object):
         self.iface.removePluginMenu("what3words", self.toolAction)
         self.iface.removePluginMenu("what3words", self.zoomToAction)
         self.iface.removePluginMenu("what3words", self.apikeyAction)
-        self.iface.removePluginMenu("what3words", self.helpAction)
+
+        removeHelpMenu("Image Discovery")
+        removeAboutMenu("Image Discovery")
+
         self.iface.removeDockWidget(self.zoomToDialog)
+
         if processingOk:
             Processing.removeProvider(self.provider)
 
