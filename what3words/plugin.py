@@ -25,9 +25,9 @@ from qgiscommons.gui import (addAboutMenu,
                              addHelpMenu,
                              removeHelpMenu)
 from qgiscommons.settings import (readSettings,
-                                  pluginSetting,
-                                  addSettingsMenu,
-                                  removeSettingsMenu)
+                                  pluginSetting)
+from qgiscommons.gui.settings import (addSettingsMenu,
+                                    removeSettingsMenu)
 
 try:
     from processing.core.Processing import Processing
