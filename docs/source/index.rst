@@ -11,8 +11,10 @@ The |current_plugin| is a QGIS plugin that enables the users to use what3words' 
 Contents:
 
 .. toctree::
+   :glob:
    :maxdepth: 2
 
    installation
    configuration
    usage
+   *
