@@ -20,11 +20,11 @@ from qgis.utils import iface
 from what3words.maptool import W3WMapTool
 from what3words.coorddialog import W3WCoordInputDialog
 
-from qgiscommons.gui import (addAboutMenu,
+from qgiscommons2.gui import (addAboutMenu,
                              removeAboutMenu,
                              addHelpMenu,
                              removeHelpMenu)
-from qgiscommons.settings import (readSettings,
+from qgiscommons2.settings import (readSettings,
                                   pluginSetting,
                                   addSettingsMenu,
                                   removeSettingsMenu)

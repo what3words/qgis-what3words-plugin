@@ -15,7 +15,7 @@ options(
     plugin = Bunch(
         name = 'what3words',
         source_dir = path('what3words'),
-        ext_libs = path('what3words/ext-libs'),
+        ext_libs = path('what3words/extlibs'),
         ext_src = path('what3words/ext-src'),
         package_dir = path('.'),
         tests = ['tests'],
@@ -134,7 +134,7 @@ def pep8(args):
     ignore = ['E203', 'E121', 'E122', 'E123', 'E124', 'E125', 'E126', 'E127',
         'E128', 'E402']
     styleguide = pep8.StyleGuide(ignore=ignore,
-                                 exclude=['*/ext-libs/*', '*/ext-src/*'],
+                                 exclude=['*/extlibs/*', '*/ext-src/*'],
                                  repeat=True, max_line_length=79,
                                  parse_argv=args)
     styleguide.input_dir(options.plugin.source_dir)

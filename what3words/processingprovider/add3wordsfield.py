@@ -21,7 +21,7 @@ from processing.tools import dataobjects, vector
 from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
 
 from what3words.w3w import what3words
-from qgiscommons.settings import pluginSetting
+from qgiscommons2.settings import pluginSetting
 
 pluginPath = os.path.split(os.path.dirname(__file__))[0]
 
