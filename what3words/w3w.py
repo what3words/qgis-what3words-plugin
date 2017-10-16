@@ -25,7 +25,7 @@ standard_library.install_aliases()
 from builtins import object
 import urllib.parse
 import json
-from qgiscommons.network.networkaccessmanager import NetworkAccessManager
+from qgiscommons2.network.networkaccessmanager import NetworkAccessManager
 
 class what3words(object):
     """what3words API"""

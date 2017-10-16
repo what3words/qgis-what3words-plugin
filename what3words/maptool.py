@@ -13,7 +13,7 @@ from qgis.gui import QgsMapTool, QgsMessageBar
 from qgis.utils import iface
 
 from what3words.w3w import what3words
-from qgiscommons.settings import pluginSetting
+from qgiscommons2.settings import pluginSetting
 
 class W3WMapTool(QgsMapTool):
 
