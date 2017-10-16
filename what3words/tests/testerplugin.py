@@ -11,17 +11,18 @@ import os
 
 from qgis.utils import iface, plugins
 from qgis.core import QgsMapLayerRegistry, QgsPoint
+from qgiscommons2.layers import loadLayer
 
 def functionalTests():
     try:
         from qgistester.test import Test
-        from qgistester.utils import loadLayer
+
     except:
         return []
 
     def _loadLayer():
         layerfile = os.path.join(os.path.dirname(__file__), "w3w.shp")
-        layer = loadLayer(layerfile)
+        layer = loadLayer(layerfile, provider="ogr")
         QgsMapLayerRegistry.instance().addMapLayer(layer)
 
     def _setTool():

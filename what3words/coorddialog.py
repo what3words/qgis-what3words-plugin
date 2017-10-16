@@ -23,6 +23,8 @@ from qgis.gui import QgsVertexMarker
 
 from qgiscommons2.settings import pluginSetting
 
+from what3words.w3w import what3words
+
 class W3WCoordInputDialog(QDockWidget):
     def __init__(self, canvas, parent):
         self.canvas = canvas
