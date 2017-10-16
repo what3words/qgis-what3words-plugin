@@ -26,7 +26,7 @@ from qgiscommons2.gui import (addAboutMenu,
                              removeHelpMenu)
 from qgiscommons2.settings import (readSettings,
                                   pluginSetting)
-from qgiscommons.gui.settings import (addSettingsMenu,
+from qgiscommons2.gui.settings import (addSettingsMenu,
                                     removeSettingsMenu)
 
 try:
