@@ -52,7 +52,7 @@ The |current_plugin| adds a processing algorithm to QGIS that allows you to dete
    
    Add 3 word address field to point layer algorithm dialog
 
-If you then open the layer's attribute table, you will find a new **3WordAddr* field populated with the corresponding 3 word addresses. 
+If you then open the layer's attribute table, you will find a new *3WordAddr* field populated with the corresponding 3 word addresses.
 
 
 .. figure:: img/5-processing-result.png
