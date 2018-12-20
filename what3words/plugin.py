@@ -14,7 +14,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
 from qgis.gui import QgsMessageBar
-from qgis.core import QgsApplication
+from qgis.core import QgsApplication, Qgis
 from qgis.utils import iface
 
 from what3words.maptool import W3WMapTool
@@ -29,12 +29,7 @@ from qgiscommons2.settings import (readSettings,
 from qgiscommons2.gui.settings import (addSettingsMenu,
                                     removeSettingsMenu)
 
-try:
-    from processing.core.Processing import Processing
-    from what3words.processingprovider.w3wprovider import W3WProvider
-    processingOk = True
-except:
-    processingOk = False
+from what3words.processingprovider.w3wprovider import W3WProvider
 
 class W3WTools(object):
 
@@ -49,8 +44,8 @@ class W3WTools(object):
             pass
 
         self.mapTool = None
-        if processingOk:
-            self.provider = W3WProvider()
+        
+        self.provider = W3WProvider()
 
         readSettings()
 
@@ -82,8 +77,7 @@ class W3WTools(object):
         self.iface.addDockWidget(Qt.TopDockWidgetArea, self.zoomToDialog)
         self.zoomToDialog.hide()
 
-        if processingOk:
-            Processing.addProvider(self.provider)
+        QgsApplication.processingRegistry().addProvider(self.provider)
 
         try:
             from lessons import addLessonsFolder, addGroup
@@ -112,7 +106,7 @@ class W3WTools(object):
     def setTool(self):
         apikey = pluginSetting("apiKey")
         if apikey is None or apikey == "":
-            self._showMessage('what3words API key is not set. Please set it and try again.', QgsMessageBar.WARNING)
+            self._showMessage('what3words API key is not set. Please set it and try again.', Qgis.Warning)
             return
         if self.mapTool is None:
             self.mapTool = W3WMapTool(self.iface.mapCanvas())
@@ -131,8 +125,7 @@ class W3WTools(object):
 
         self.iface.removeDockWidget(self.zoomToDialog)
 
-        if processingOk:
-            Processing.removeProvider(self.provider)
+        QgsApplication.processingRegistry().addProvider(self.provider)
 
         try:
             from what3words.tests import testerplugin
@@ -148,6 +141,6 @@ class W3WTools(object):
         except:
             pass
 
-    def _showMessage(self, message, level=QgsMessageBar.INFO):
+    def _showMessage(self, message, level=Qgis.Info):
         iface.messageBar().pushMessage(
             message, level, iface.messageTimeout())

@@ -1,63 +1,78 @@
 # -*- coding: utf-8 -*-
-#
+
 # (c) 2016 Boundless, http://boundlessgeo.com
 # This code is licensed under the GPL 2.0 license.
-#
+
+
 import os
+
 from qgis.PyQt.QtCore import QVariant
-from qgis.PyQt.QtGui import QIcon
-
-try:
-    from qgis.core import  QGis
-except ImportError:
-    from qgis.core import  Qgis as QGis
-
-from qgis.core import QgsVectorDataProvider, QgsField, QgsCoordinateReferenceSystem, QgsCoordinateTransform
-
-from processing.core.GeoAlgorithm import GeoAlgorithm
-from processing.core.parameters import ParameterVector
-from processing.core.outputs import OutputVector
-from processing.tools import dataobjects, vector
-from processing.core.GeoAlgorithmExecutionException import GeoAlgorithmExecutionException
+from qgis.core import (QgsProcessingException,
+                       QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransform,
+                       QgsField,
+                       QgsProject,
+                       QgsFeatureSink,
+                       QgsProcessingParameterFeatureSource,
+                       QgsProcessingParameterString,
+                       QgsProcessingParameterEnum,
+                       QgsProcessingParameterNumber,
+                       QgsProcessingParameterFeatureSink)
+from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 
 from what3words.w3w import what3words
 from qgiscommons2.settings import pluginSetting
 
 pluginPath = os.path.split(os.path.dirname(__file__))[0]
 
-
-class Add3WordsFieldAlgorithm(GeoAlgorithm):
+class Add3WordsFieldAlgorithm(QgisAlgorithm):
 
     INPUT = 'INPUT'
     OUTPUT = 'OUTPUT'
 
-    def processAlgorithm(self, progress):
-        apik = pluginSetting("apiKey")
-        if apik is None or apik == ""::
-             raise GeoAlgorithmExecutionException("what3words API key is not defined")
+    def group(self):
+        return self.tr('what3words')
 
-        filename = self.getParameterValue(self.INPUT)
-        layer = dataobjects.getObjectFromUri(filename)
-        provider = layer.dataProvider()
-        caps = provider.capabilities()
-        if not (caps & QgsVectorDataProvider.AddAttributes):
-            raise GeoAlgorithmExecutionException("The selected layer does not support adding new attributes.")
+    def groupId(self):
+        return 'w3w'
 
-        idxField = layer.fieldNameIndex("3WordAddr")
-        if idxField == -1:
-            provider.addAttributes([QgsField("3WordAddr", QVariant.String, "", 254, 0)])
-            layer.updateFields()
-            idxField = layer.fieldNameIndex("3WordAddr")
+    def __init__(self):
+        super().__init__()
 
-        w3w = what3words(apikey=apik)
+    def initAlgorithm(self, config=None):
+        self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT, self.tr('Input layer')))
+        self.addParameter(QgsProcessingParameterFeatureSink(self.OUTPUT,
+                                                            self.tr('Output')))
 
-        nFeat = layer.featureCount()
-        epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
-        transform = QgsCoordinateTransform(layer.crs(), epsg4326)
+    def name(self):
+        return 'addw3wfield'
 
-        for i, feat in enumerate(layer.getFeatures()):
-            progress.setPercentage(int(100 * i / nFeat))
-            pt = feat.geometry().vertexAt(0)
+    def displayName(self):
+        return self.tr('Add what3words field')
+
+    def processAlgorithm(self, parameters, context, feedback):
+        source = self.parameterAsSource(parameters, self.INPUT, context)        
+        fields = source.fields()
+        field = QgsField("w3w", QVariant.String)
+        fields.append(field)
+        apiKey = pluginSetting("apiKey")
+        w3w = what3words(apikey=apiKey)
+        (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context,
+                                               fields, source.wkbType(), source.sourceCrs())
+
+        features = source.getFeatures()
+        total = 100.0 / source.featureCount() if source.featureCount() else 0
+
+        epsg4326 = QgsCoordinateReferenceSystem('EPSG:4326')
+        transform = QgsCoordinateTransform(source.sourceCrs(), epsg4326, QgsProject.instance())
+
+        for current, feat in enumerate(features):
+            if feedback.isCanceled():
+                break
+
+            feedback.setProgress(int(current * total))
+            attrs = feat.attributes()
+            pt = feat.geometry().centroid().asPoint()
             try:
                 pt4326 = transform.transform(pt.x(), pt.y())
                 threeWords = w3w.reverseGeocode(pt4326.y(), pt4326.x())["words"]
@@ -65,24 +80,8 @@ class Add3WordsFieldAlgorithm(GeoAlgorithm):
                 progress.setDebugInfo("Failed to retrieve w3w address for feature {}:\n{}".format(feat.id(), str(e)))
                 threeWords = ""
 
-            provider.changeAttributeValues({feat.id() : {idxField: threeWords}})
+            attrs.append(threeWords)
+            feat.setAttributes(attrs)
+            sink.addFeature(feat, QgsFeatureSink.FastInsert)
 
-        self.setOutputValue(self.OUTPUT, filename)
-
-    def defineCharacteristics(self):
-        self.name = 'Add 3 word address field to points layer'
-        self.i18n_name = self.name
-        self.group = 'what3words tools'
-        self.i18n_group = self.group
-
-        if QGis.QGIS_VERSION_INT < 29900:
-            self.addParameter(ParameterVector(self.INPUT,
-                                              'Input layer', [ParameterVector.VECTOR_TYPE_POINT]))
-        else:
-            self.addParameter(ParameterVector(self.INPUT,
-                                              'Input layer', [dataobjects.TYPE_VECTOR_POINT]))
-
-        self.addOutput(OutputVector(self.OUTPUT, 'Output', True))
-
-    def getIcon(self):
-        return QIcon(os.path.join(pluginPath, "icons", "w3w.png"))
+        return {self.OUTPUT: dest_id}

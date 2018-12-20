@@ -17,7 +17,8 @@ from qgis.PyQt.QtWidgets import (QDockWidget,
 from qgis.PyQt.QtGui import QCursor
 
 from qgis.core import (QgsCoordinateReferenceSystem,
-                       QgsCoordinateTransform
+                       QgsCoordinateTransform,
+                       QgsProject
                       )
 from qgis.gui import QgsVertexMarker
 
@@ -66,7 +67,7 @@ class W3WCoordInputDialog(QDockWidget):
             lon = float(json["geometry"]["lng"])
             canvasCrs = self.canvas.mapSettings().destinationCrs()
             epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
-            transform4326 = QgsCoordinateTransform(epsg4326, canvasCrs)
+            transform4326 = QgsCoordinateTransform(epsg4326, canvasCrs, QgsProject.instance())
             center = transform4326.transform(lon, lat)
             self.canvas.zoomByFactor(1, center)
             self.canvas.refresh()
@@ -78,6 +79,7 @@ class W3WCoordInputDialog(QDockWidget):
             self.removeMarkerButton.setDisabled(False)
             self.coordBox.setStyleSheet("QLineEdit{background: white}")
         except Exception as e:
+            raise
             self.coordBox.setStyleSheet("QLineEdit{background: yellow}")
         finally:
             QApplication.restoreOverrideCursor()
