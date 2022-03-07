@@ -2,17 +2,17 @@
 
 # What3words tools
 
-What3words tools is a plugin for QGIS that enables the users to use what3words 3 word addresses in it.
+What3words tools is a plugin for QGIS that brings the functionality of the what3words API to the QGIS platform. You can use the plugin to convert from coordinates to 3 word addresses by adding a field to a shapefile as well as searching for 3 word addresses or inspecting the map to view the 3 word address for a location.
 
 ## Documentation
 
-The plugin is documentated [here](http://boundlessgeo.github.io/qgis-plugins-documentation/what3words)
+The plugin is documentated [here](https://developer.what3words.com/tools/gis-extensions/qgis)
 
 ## Cloning this repository
 
 This repository uses external repositories as submodules. Therefore in order to include the external repositories during cloning you should use the *--recursive* option:
 
-`git clone --recursive http://github.com/boundlessgeo/qgis-what3words-plugin.git`
+`git clone --recursive https://github.com/what3words/qgis-what3words-plugin.git`
 
 Also, to update the submodules whenever there are changes in the remote repositories one should do:
 
