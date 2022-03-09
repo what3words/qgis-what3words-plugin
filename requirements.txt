@@ -1,2 +1,1 @@
-qgiscommons
-# test requirements
+qgiscommons2

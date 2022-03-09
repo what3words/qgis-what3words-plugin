@@ -46,12 +46,12 @@ class what3words(object):
         return self.postRequest(self.host + '/v3/convert-to-3wa', params)		
 
     def getLanguages(self):
-        return self.postRequest(self.host + '/v2/languages', dict())
+        return self.postRequest(self.host + '/v3/languages', dict())
 
     def postRequest(self, url, params):
         params.update({'key': self.apikey})
         encparams = urllib.parse.urlencode(params)
         url = url + '?' + encparams
-        headers = {'X-W3W-Plugin':'what3words-QGIS/3.0 ()'}
+        headers = {'X-W3W-Plugin':'what3words-QGIS/3.2 ()'}
         r, data = self.nam.request(url, headers=headers)
         return json.loads(data)
