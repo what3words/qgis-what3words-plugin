@@ -20,3 +20,19 @@ Copyright (C) 2022 Planet Federal QGIS plugin [contributors](CONTRIBUTING.rst).
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+## Changelog
+
+*2018 (v3.1)*
+Update to API V3 and added language setting
+
+- Update to latest version of what3words API (V3)
+- Added language code field to change what3words language
+- Updated what3words logo
+
+*2022 (v3.2)*
+Add a tracking method for QGIS plugin usage
+
+- Add http headers in the plugin
+- Update the metadata.txt
+- Update the readme file
