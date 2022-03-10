@@ -1,19 +1,22 @@
-[![Build Status](https://travis-ci.org/boundlessgeo/qgis-what3words-plugin.svg?branch=master)](https://travis-ci.org/boundlessgeo/qgis-what3words-plugin)
+# What3words tools Plugin
 
-# What3words tools
+[![License: GPL v2](https://img.shields.io/badge/License-GPLv2-blue.svg)](./LICENSE.md)
 
-What3words tools is a plugin for QGIS that enables the users to use what3words 3 word addresses in it.
+What3words tools is a plugin for QGIS that brings the functionality of the what3words API to the QGIS platform. You can use the plugin to convert from coordinates to 3 word addresses by adding a field to a shapefile as well as searching for 3 word addresses or inspecting the map to view the 3 word address for a location.
 
-## Documentation
+## Installation
+The What3words tools plugin is not currently available in the QGIS Plugins server. To install the latest version, use the [release page](https://github.com/what3words/qgis-what3words-plugin/releases), then open the QGIS Plugin manager and install the downloaded zip file.
 
-The plugin is documentated [here](http://boundlessgeo.github.io/qgis-plugins-documentation/what3words)
+This plugin is compatible with QGIS v3 or later.
 
-## Cloning this repository
+## Usage
 
-This repository uses external repositories as submodules. Therefore in order to include the external repositories during cloning you should use the *--recursive* option:
+The plugin is documentated [here](https://developer.what3words.com/tools/gis-extensions/qgis)
 
-`git clone --recursive http://github.com/boundlessgeo/qgis-what3words-plugin.git`
+## License - GPLv2
 
-Also, to update the submodules whenever there are changes in the remote repositories one should do:
+Copyright (C) 2022 Planet Federal QGIS plugin [contributors](CONTRIBUTING.rst).
 
-`git submodule update --remote`
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
