@@ -11,8 +11,6 @@ roles=desktop-qgis-plugin-w3w
 author=Boundless (Victor Olaya)
 email=info@boundlessgeo.com
 
-support=support@what3words.com
-
 icon=icons/desktop.svg
 tags=boundless,what3words,address
 
