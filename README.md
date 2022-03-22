@@ -15,7 +15,9 @@ The plugin is documentated [here](https://developer.what3words.com/tools/gis-ext
 
 ## License - GPLv2
 
-Copyright (C) 2022 Planet Federal QGIS plugin [contributors](CONTRIBUTING.rst).
+Versions 1-3, Copyright  (C) 2016-2020 Planet Federal QGIS plugin [contributors](CONTRIBUTING.rst)
+
+Version 4, Copyright (C) 2020-2022, what3words Limited
 
 This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
@@ -23,14 +25,14 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 ## Changelog
 
-*2018 (v3.1)*
+*2020 (v4.0)*
 Update to API V3 and added language setting
 
 - Update to latest version of what3words API (V3)
 - Added language code field to change what3words language
 - Updated what3words logo
 
-*2022 (v3.2)*
+*2022 (v4.1)*
 Add a tracking method for QGIS plugin usage
 
 - Add http headers in the plugin
