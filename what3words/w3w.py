@@ -52,6 +52,6 @@ class what3words(object):
         params.update({'key': self.apikey})
         encparams = urllib.parse.urlencode(params)
         url = url + '?' + encparams
-        headers = {'X-W3W-Plugin':'what3words-QGIS/3.2 ()'}
+        headers = {'X-W3W-Plugin':'what3words-QGIS/4.1 ()'}
         r, data = self.nam.request(url, headers=headers)
         return json.loads(data)
