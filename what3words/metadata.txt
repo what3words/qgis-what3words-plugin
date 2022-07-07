@@ -11,7 +11,7 @@ roles=desktop-qgis-plugin-w3w
 author=what3words Limited
 email=support@what3words.com
 
-icon=icons/desktop.svg
+icon=icons/w3w.png
 tags=boundless,what3words,address
 
 homepage=https://what3words.com/

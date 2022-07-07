@@ -11,6 +11,7 @@ from qgis.core import QgsProcessingProvider
  
 from processing.core.ProcessingConfig import Setting, ProcessingConfig
 from what3words.processingprovider.add3wordsfield import Add3WordsFieldAlgorithm
+from what3words.processingprovider.addgeomfield import Add3WordsGeomFieldAlgorithm
 
 pluginPath = os.path.split(os.path.dirname(__file__))[0]
 
@@ -22,7 +23,7 @@ class W3WProvider(QgsProcessingProvider):
     def load(self):
         ProcessingConfig.settingIcons[self.name()] = self.icon()
         ProcessingConfig.addSetting(Setting(self.name(), 'ACTIVATE_W3W',
-                                            'Activate', False))
+                                            'Activate', True))
         ProcessingConfig.readSettings()
         self.refreshAlgorithms()
         return True
@@ -48,5 +49,7 @@ class W3WProvider(QgsProcessingProvider):
 
     def loadAlgorithms(self):
         for alg in [Add3WordsFieldAlgorithm()]:
+            self.addAlgorithm(alg)
+        for alg in [Add3WordsGeomFieldAlgorithm()]:
             self.addAlgorithm(alg)
 
