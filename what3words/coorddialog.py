@@ -5,26 +5,19 @@ from builtins import str
 # This code is licensed under the GPL 2.0 license.
 #
 
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import (QDockWidget,
-                                 QLabel,
-                                 QLineEdit,
-                                 QPushButton,
-                                 QHBoxLayout,
-                                 QWidget,
-                                 QApplication
-                                )
-from qgis.PyQt.QtGui import QCursor
 
-from qgis.core import (QgsCoordinateReferenceSystem,
-                       QgsCoordinateTransform,
-                       QgsProject
-                      )
+from qgis.core import (Qgis, QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransform, QgsProject)
 from qgis.gui import QgsVertexMarker
-
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QCursor
+from qgis.PyQt.QtWidgets import (QApplication, QDockWidget, QHBoxLayout,
+                                 QLabel, QLineEdit, QPushButton, QWidget)
+from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
 
 from what3words.w3w import what3words
+
 
 class W3WCoordInputDialog(QDockWidget):
     def __init__(self, canvas, parent):
@@ -62,6 +55,10 @@ class W3WCoordInputDialog(QDockWidget):
         self.setWidget(self.dockWidgetContents)
 
     def zoomToPressed(self):
+        apiKey = pluginSetting("apiKey")
+        addressLanguage = pluginSetting("addressLanguage")
+        self.w3w = what3words(apikey=apiKey,addressLanguage=addressLanguage)
+        
         try:
             w3wCoord = str(self.coordBox.text()).replace(" ", "")
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
@@ -82,8 +79,11 @@ class W3WCoordInputDialog(QDockWidget):
             self.removeMarkerButton.setDisabled(False)
             self.coordBox.setStyleSheet("QLineEdit{background: white}")
         except Exception as e:
-            raise
-            self.coordBox.setStyleSheet("QLineEdit{background: yellow}")
+            iface.messageBar().pushMessage("what3words", 
+            "The Error is: '{}' ".format(e), 
+            level=Qgis.Critical, duration=5)
+            # raise 
+            # self.coordBox.setStyleSheet("QLineEdit{background: yellow}")
         finally:
             QApplication.restoreOverrideCursor()
 

@@ -24,6 +24,12 @@ SOFTWARE.
 import urllib.parse
 import json
 from qgiscommons2.network.networkaccessmanager import NetworkAccessManager
+from qgis.utils import iface, QgsMessageLog
+
+
+class GeoCodeException(Exception):
+    pass
+		
 
 class what3words(object):
     """what3words API"""
@@ -33,25 +39,36 @@ class what3words(object):
         self.apikey = apikey
         self.addressLanguage = addressLanguage
         self.nam = NetworkAccessManager()
-		
-    def convertToCordinates(self, words='index.home.raft', lang='en'):
-        if isinstance(words, list):
-            words = "%s.%s.%s" % (words[0], words[1], words[2])
-        params = {'words':words, 'format':'json', 'language':self.addressLanguage}
-        return self.postRequest(self.host + '/v3/convert-to-coordinates', params)
 
-    def convertTo3wa(self, lat='', lng='', lang='en'):
-        coords = "%s,%s" % (lat, lng)
-        params = {'coordinates':coords, 'format':'json', 'language':self.addressLanguage}
-        return self.postRequest(self.host + '/v3/convert-to-3wa', params)		
+    def convertToCordinates(self, words='index.home.raft', language='en'):
+        try:
+            if isinstance(words, list):
+                words = "%s.%s.%s" % (words[0], words[1], words[2])
+            params = {'words':words, 'format':'json', 'language':self.addressLanguage}
+            return self.postRequest(self.host + '/v3/convert-to-coordinates', params)
+        except Exception as e:
+            raise GeoCodeException(str(e))
+
+    def convertTo3wa(self, lat='', lng='', language='en'):
+        try:
+            coords = "%s,%s" % (lat, lng)
+            params = {'coordinates':coords, 'format':'json', 'language':self.addressLanguage}
+            return self.postRequest(self.host + '/v3/convert-to-3wa', params)
+        except Exception as e:
+            raise GeoCodeException(str(e))		
 
     def getLanguages(self):
-        return self.postRequest(self.host + '/v3/languages', dict())
+        try:
+            return self.postRequest(self.host + '/v3/languages', dict())
+        except Exception as e:
+            raise GeoCodeException(str(e))
 
     def postRequest(self, url, params):
         params.update({'key': self.apikey})
         encparams = urllib.parse.urlencode(params)
         url = url + '?' + encparams
-        headers = {'X-W3W-Plugin':'what3words-QGIS/4.1 ()'}
+        headers = {'X-W3W-Plugin':'what3words-QGIS/4.2 ()'}
         r, data = self.nam.request(url, headers=headers)
         return json.loads(data)
+        
+        
