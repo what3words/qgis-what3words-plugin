@@ -40,16 +40,16 @@ class what3words(object):
         self.addressLanguage = addressLanguage
         self.nam = NetworkAccessManager()
 
-    def convertToCordinates(self, words='index.home.raft', language='en'):
+    def convertToCoordinates(self, words='index.home.raft', format='json'):
         try:
             if isinstance(words, list):
                 words = "%s.%s.%s" % (words[0], words[1], words[2])
-            params = {'words':words, 'format':'json', 'language':self.addressLanguage}
+            params = {'words':words, 'format':'json'}
             return self.postRequest(self.host + '/v3/convert-to-coordinates', params)
         except Exception as e:
             raise GeoCodeException(str(e))
 
-    def convertTo3wa(self, lat='', lng='', language='en'):
+    def convertTo3wa(self, lat='', lng='', format='json', language=None):
         try:
             coords = "%s,%s" % (lat, lng)
             params = {'coordinates':coords, 'format':'json', 'language':self.addressLanguage}
@@ -62,6 +62,7 @@ class what3words(object):
             return self.postRequest(self.host + '/v3/languages', dict())
         except Exception as e:
             raise GeoCodeException(str(e))
+
 
     def postRequest(self, url, params):
         params.update({'key': self.apikey})

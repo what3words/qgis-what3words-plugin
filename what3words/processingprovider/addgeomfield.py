@@ -86,7 +86,7 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
             attrs = feat.attributes()
             threewa = attrs[idxFieldId]
             try:
-                data = w3w.convertToCordinates(threewa)
+                data = w3w.convertToCoordinates(threewa)
                 lat = data["coordinates"]["lat"]
                 lng = data["coordinates"]["lng"]
                 feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lng,lat ))) 

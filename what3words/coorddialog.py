@@ -62,7 +62,7 @@ class W3WCoordInputDialog(QDockWidget):
         try:
             w3wCoord = str(self.coordBox.text()).replace(" ", "")
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
-            json = self.w3w.convertToCordinates(w3wCoord)
+            json = self.w3w.convertToCoordinates(w3wCoord)
             lat = float(json["coordinates"]["lat"])
             lon = float(json["coordinates"]["lng"])
             canvasCrs = self.canvas.mapSettings().destinationCrs()
@@ -81,7 +81,7 @@ class W3WCoordInputDialog(QDockWidget):
         except Exception as e:
             iface.messageBar().pushMessage("what3words", 
             "The Error is: '{}' ".format(e), 
-            level=Qgis.Critical, duration=5)
+            level=Qgis.Warning, duration=5)
             # raise 
             # self.coordBox.setStyleSheet("QLineEdit{background: yellow}")
         finally:
