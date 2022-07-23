@@ -80,10 +80,8 @@ class W3WCoordInputDialog(QDockWidget):
             self.coordBox.setStyleSheet("QLineEdit{background: white}")
         except Exception as e:
             iface.messageBar().pushMessage("what3words", 
-            "The Error is: '{}' ".format(e), 
+            "The Error is: '{}' ".format(str(e)), 
             level=Qgis.Warning, duration=5)
-            # raise 
-            # self.coordBox.setStyleSheet("QLineEdit{background: yellow}")
         finally:
             QApplication.restoreOverrideCursor()
 

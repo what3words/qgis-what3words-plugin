@@ -1,35 +1,24 @@
 from __future__ import absolute_import
-from builtins import object
-# -*- coding: utf-8 -*-
-#
-# (c) 2016 Boundless, http://boundlessgeo.com
-# This code is licensed under the GPL 2.0 license.
-#
 
 import os
 import webbrowser
+from builtins import object
 
-from qgis.PyQt.QtCore import Qt
+from qgis.core import Qgis, QgsApplication, QgsProject
+from qgis.gui import QgsMessageBar
+from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-
-from qgis.gui import QgsMessageBar
-from qgis.core import QgsApplication, Qgis
 from qgis.utils import iface
+from qgiscommons2.gui import (addAboutMenu, addHelpMenu, removeAboutMenu,
+                              removeHelpMenu)
+from qgiscommons2.gui.settings import addSettingsMenu, removeSettingsMenu
+from qgiscommons2.settings import pluginSetting, readSettings
 
-from what3words.maptool import W3WMapTool
 from what3words.coorddialog import W3WCoordInputDialog
-
-from qgiscommons2.gui import (addAboutMenu,
-                             removeAboutMenu,
-                             addHelpMenu,
-                             removeHelpMenu)
-from qgiscommons2.settings import (readSettings,
-                                  pluginSetting)
-from qgiscommons2.gui.settings import (addSettingsMenu,
-                                    removeSettingsMenu)
-
+from what3words.maptool import W3WMapTool
 from what3words.processingprovider.w3wprovider import W3WProvider
+
 
 class W3WTools(object):
 
@@ -37,8 +26,9 @@ class W3WTools(object):
         self.iface = iface
 
         try:
-            from what3words.tests import testerplugin
             from qgistester.tests import addTestModule
+
+            from what3words.tests import testerplugin
             addTestModule(testerplugin, "what3words")
         except:
             pass
@@ -80,7 +70,7 @@ class W3WTools(object):
         QgsApplication.processingRegistry().addProvider(self.provider)
 
         try:
-            from lessons import addLessonsFolder, addGroup
+            from lessons import addGroup, addLessonsFolder
             folder = os.path.join(os.path.dirname(__file__), "_lessons")
             addLessonsFolder(folder, "what3words")
         except:
@@ -125,11 +115,12 @@ class W3WTools(object):
 
         self.iface.removeDockWidget(self.zoomToDialog)
 
-        QgsApplication.processingRegistry().addProvider(self.provider)
+        QgsApplication.processingRegistry().removeProvider(self.provider)
 
         try:
-            from what3words.tests import testerplugin
             from qgistester.tests import removeTestModule
+
+            from what3words.tests import testerplugin
             removeTestModule(testerplugin, "what3words")
         except:
             pass

@@ -21,10 +21,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
+from tkinter import Canvas
 import urllib.parse
 import json
 from qgiscommons2.network.networkaccessmanager import NetworkAccessManager
-from qgis.utils import iface, QgsMessageLog
+from qgis.utils import iface
+from qgis.core import Qgis
 
 
 class GeoCodeException(Exception):
@@ -41,35 +43,24 @@ class what3words(object):
         self.nam = NetworkAccessManager()
 
     def convertToCoordinates(self, words='index.home.raft', format='json'):
-        try:
-            if isinstance(words, list):
-                words = "%s.%s.%s" % (words[0], words[1], words[2])
-            params = {'words':words, 'format':'json'}
-            return self.postRequest(self.host + '/v3/convert-to-coordinates', params)
-        except Exception as e:
-            raise GeoCodeException(str(e))
+        if isinstance(words, list):
+            words = "%s.%s.%s" % (words[0], words[1], words[2])
+        params = {'words':words, 'format':'json'}
+        return self.postRequest(self.host + '/v3/convert-to-coordinates', params)
 
     def convertTo3wa(self, lat='', lng='', format='json', language=None):
-        try:
-            coords = "%s,%s" % (lat, lng)
-            params = {'coordinates':coords, 'format':'json', 'language':self.addressLanguage}
-            return self.postRequest(self.host + '/v3/convert-to-3wa', params)
-        except Exception as e:
-            raise GeoCodeException(str(e))		
+        coords = "%s,%s" % (lat, lng)
+        params = {'coordinates':coords, 'format':'json', 'language':self.addressLanguage}
+        return self.postRequest(self.host + '/v3/convert-to-3wa', params)	
 
     def getLanguages(self):
-        try:
-            return self.postRequest(self.host + '/v3/languages', dict())
-        except Exception as e:
-            raise GeoCodeException(str(e))
-
+        return self.postRequest(self.host + '/v3/languages', dict())
 
     def postRequest(self, url, params):
         params.update({'key': self.apikey})
         encparams = urllib.parse.urlencode(params)
         url = url + '?' + encparams
         headers = {'X-W3W-Plugin':'what3words-QGIS/4.2 ()'}
-        r, data = self.nam.request(url, headers=headers)
-        return json.loads(data)
-        
-        
+        response, content = self.nam.request(url, headers=headers)
+        response_json = json.loads(content)
+        return response_json

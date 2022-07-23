@@ -36,11 +36,11 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
     W3WFIELD = 'WHAT3WORDS ADDRESS'
     OUTPUT = 'OUTPUT'
 
-    def group(self):
-        return self.tr('what3words')
+    # def group(self):
+    #     return self.tr('what3words')
 
-    def groupId(self):
-        return 'w3w'
+    # def groupId(self):
+    #     return 'w3w'
 
     def __init__(self):
         super().__init__()
@@ -91,7 +91,7 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
                 lng = data["coordinates"]["lng"]
                 feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lng,lat ))) 
             except Exception as e:
-                feedback.setDebugInfo("Failed to retrieve w3w address for feature {}:\n{}".format(feat.id(), str(e)))
+                feedback.pushDebugInfo("Failed to retrieve w3w address for feature {}:\n{}".format(feat.id(), str(e)))
                 threeWords = ""
             
                
