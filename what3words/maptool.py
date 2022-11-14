@@ -4,16 +4,17 @@
 # This code is licensed under the GPL 2.0 license.
 #
 
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QApplication
-from qgis.PyQt.QtGui import QCursor
-
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, Qgis
+from qgis.core import (Qgis, QgsCoordinateReferenceSystem,
+                       QgsCoordinateTransform, QgsProject)
 from qgis.gui import QgsMapTool, QgsMessageBar
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QCursor
+from qgis.PyQt.QtWidgets import QApplication
 from qgis.utils import iface
+from qgiscommons2.settings import pluginSetting
 
 from what3words.w3w import what3words
-from qgiscommons2.settings import pluginSetting
+
 
 class W3WMapTool(QgsMapTool):
 

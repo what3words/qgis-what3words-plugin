@@ -30,11 +30,11 @@ class Add3WordsFieldAlgorithm(QgisAlgorithm):
     INPUT = 'INPUT'
     OUTPUT = 'OUTPUT'
 
-    def group(self):
-        return self.tr('what3words')
+    # def group(self):
+    #     return self.tr('what3words')
 
-    def groupId(self):
-        return 'w3w'
+    # def groupId(self):
+    #     return 'w3w'
 
     def __init__(self):
         super().__init__()
@@ -48,7 +48,7 @@ class Add3WordsFieldAlgorithm(QgisAlgorithm):
         return 'addw3wfield'
 
     def displayName(self):
-        return self.tr('Add what3words address field to layer')
+        return self.tr('Add what3words field to layer')
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)        
@@ -59,14 +59,14 @@ class Add3WordsFieldAlgorithm(QgisAlgorithm):
         addressLanguage = pluginSetting("addressLanguage")
         w3w = what3words(apikey=apiKey,addressLanguage=addressLanguage)
         (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context,
-                                               fields, source.wkbType(), source.sourceCrs())
+                                            fields, source.wkbType(), source.sourceCrs())
 
         features = source.getFeatures()
         total = 100.0 / source.featureCount() if source.featureCount() else 0
 
         epsg4326 = QgsCoordinateReferenceSystem('EPSG:4326')
         transform = QgsCoordinateTransform(source.sourceCrs(), epsg4326, QgsProject.instance())
-
+            
         for current, feat in enumerate(features):
             if feedback.isCanceled():
                 break
@@ -78,7 +78,7 @@ class Add3WordsFieldAlgorithm(QgisAlgorithm):
                 pt4326 = transform.transform(pt.x(), pt.y())
                 threeWords = w3w.convertTo3wa(pt4326.y(), pt4326.x())["words"]
             except Exception as e:
-                feedback.setDebugInfo("Failed to retrieve w3w address for feature {}:\n{}".format(feat.id(), str(e)))
+                feedback.pushDebugInfo("Failed to retrieve w3w address for feature {}:\n{}".format(feat.id(), str(e)))
                 threeWords = ""
 
             attrs.append(threeWords)
