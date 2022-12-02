@@ -38,3 +38,15 @@ Add a tracking method for QGIS plugin usage
 - Add http headers in the plugin
 - Update the metadata.txt
 - Update the readme file
+
+*2022 (v4.2)*
+Add exceptions
+
+    Add exceptions
+    Fix small bugs
+    Update logo
+    Update metadata by signing up to what3words account
+
+*2022 (v4.3)*
+Remove tkinter library - bug on windows
+

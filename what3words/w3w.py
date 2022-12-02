@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
-from tkinter import Canvas
 import urllib.parse
 import json
 from qgiscommons2.network.networkaccessmanager import NetworkAccessManager
@@ -60,7 +59,7 @@ class what3words(object):
         params.update({'key': self.apikey})
         encparams = urllib.parse.urlencode(params)
         url = url + '?' + encparams
-        headers = {'X-W3W-Plugin':'what3words-QGIS/4.2 ()'}
+        headers = {'X-W3W-Plugin':'what3words-QGIS/4.3 ()'}
         response, content = self.nam.request(url, headers=headers)
         response_json = json.loads(content)
         return response_json
