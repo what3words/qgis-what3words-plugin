@@ -28,16 +28,16 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 *2020 (v4.0)*
 Update to API V3 and added language setting
 
-- Update to latest version of what3words API (V3)
-- Added language code field to change what3words language
-- Updated what3words logo
+    Update to latest version of what3words API (V3)
+    Added language code field to change what3words language
+    Updated what3words logo
 
 *2022 (v4.1)*
 Add a tracking method for QGIS plugin usage
 
-- Add http headers in the plugin
-- Update the metadata.txt
-- Update the readme file
+    Add http headers in the plugin
+    Update the metadata.txt
+    Update the readme file
 
 *2022 (v4.2)*
 Add exceptions
@@ -48,5 +48,7 @@ Add exceptions
     Update metadata by signing up to what3words account
 
 *2022 (v4.3)*
-Remove tkinter library - bug on windows
+Remove tkinter library 
+    
+    Fix a bug on installing the widget on QGIS windows
 
