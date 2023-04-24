@@ -1,11 +1,12 @@
-# What3words tools Plugin
+# What3words tools QGIS Plugin
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPLv2-blue.svg)](./LICENSE.md)
 
 What3words tools is a plugin for QGIS that brings the functionality of the what3words API to the QGIS platform. You can use the plugin to convert from coordinates to 3 word addresses by adding a field to a shapefile as well as searching for 3 word addresses or inspecting the map to view the 3 word address for a location.
 
 ## Installation
-The What3words tools plugin is not currently available in the QGIS Plugins server. To install the latest version, use the [release page](https://github.com/what3words/qgis-what3words-plugin/releases), then open the QGIS Plugin manager and install the downloaded zip file.
+The What3words tools plugin is currently available in the [QGIS Plugins server](https://plugins.qgis.org/plugins/what3words/). You can download or install it directly into your QGIS map.
+Or you can install the latest version, using the [release page](https://github.com/what3words/qgis-what3words-plugin/releases), then open the QGIS Plugin manager and install the downloaded zip file.
 
 This plugin is compatible with QGIS v3 or later.
 
