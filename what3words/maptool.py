@@ -79,8 +79,18 @@ class W3WMapTool(QgsMapTool):
                 level=Qgis.Warning, duration=3)
             return
 
-        # Convert the extent to a bounding box string for the What3words API
-        bounding_box = f"{extent.yMinimum()},{extent.xMinimum()},{extent.yMaximum()},{extent.xMaximum()}"
+        # Get the map canvas CRS (which might not be WGS84)
+        canvasCrs = canvas.mapSettings().destinationCrs()
+
+        # Create a transform object to convert the coordinates to WGS84 (EPSG:4326)
+        transform = QgsCoordinateTransform(canvasCrs, self.epsg4326, QgsProject.instance())
+
+        # Transform the extent coordinates to EPSG:4326 (WGS84)
+        bottom_left = transform.transform(extent.xMinimum(), extent.yMinimum())
+        top_right = transform.transform(extent.xMaximum(), extent.yMaximum())
+
+        # Create the bounding box string in WGS84 for the API call
+        bounding_box = f"{bottom_left.y()},{bottom_left.x()},{top_right.y()},{top_right.x()}"
 
         # Fetch the What3words grid for the current extent
         try:
@@ -96,8 +106,8 @@ class W3WMapTool(QgsMapTool):
 
             # Loop through the grid lines and add them as features to the layer
             for line in grid_data['lines']:
-                point1 = QgsPoint(line['start']['lng'], line['start']['lat'])
-                point2 = QgsPoint(line['end']['lng'], line['end']['lat'])
+                point1 = QgsPoint(line['start']['lng'], line['start']['lat'])  # Points already in WGS84
+                point2 = QgsPoint(line['end']['lng'], line['end']['lat'])      # Points already in WGS84
                 feature = QgsFeature()
                 feature.setGeometry(QgsGeometry.fromPolyline([point1, point2]))
                 pr.addFeature(feature)
@@ -110,6 +120,7 @@ class W3WMapTool(QgsMapTool):
                 f"Error fetching grid: {str(e)}", level=Qgis.Critical, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
+
 
     def getZoomLevel(self):
         """
