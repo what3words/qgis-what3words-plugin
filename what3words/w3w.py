@@ -44,16 +44,31 @@ class what3words(object):
     def convertToCoordinates(self, words='index.home.raft', format='json'):
         if isinstance(words, list):
             words = "%s.%s.%s" % (words[0], words[1], words[2])
-        params = {'words':words, 'format':'json'}
-        return self.postRequest(self.host + '/v3/convert-to-coordinates', params)
+        params = {'words':words, 'format':format}
+        url = self.host + '/v3/convert-to-coordinates'
+        return self.postRequest(url, params)
 
     def convertTo3wa(self, lat='', lng='', format='json', language=None):
         coords = "%s,%s" % (lat, lng)
-        params = {'coordinates':coords, 'format':'json', 'language':self.addressLanguage}
-        return self.postRequest(self.host + '/v3/convert-to-3wa', params)	
+        params = {'coordinates':coords, 'format':format, 'language':self.addressLanguage}
+        url = self.host + '/v3/convert-to-3wa'
+        return self.postRequest(url, params)	
 
     def getLanguages(self):
-        return self.postRequest(self.host + '/v3/languages', dict())
+        url = self.host + '/v3/languages'
+        return self.postRequest(url, dict())
+    
+    def getGridSection(self, bounding_box, format='json'):
+        """
+        Fetches the What3words grid for a given bounding box.
+        
+        :param bounding_box: A string in the format 'lat1,lng1,lat2,lng2'
+        :param format: Response format, defaults to 'json'
+        :return: The grid data from the What3words API.
+        """
+        params = {'bounding-box': bounding_box, 'format': format}
+        url = self.host + '/v3/grid-section'
+        return self.postRequest(url, params)
 
     def postRequest(self, url, params):
         params.update({'key': self.apikey})

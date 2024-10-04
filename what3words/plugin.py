@@ -54,6 +54,13 @@ class W3WTools(object):
         self.zoomToAction.triggered.connect(self.zoomTo)
         self.iface.addPluginToMenu("what3words", self.zoomToAction)
 
+        # Adding a new action for drawing the W3W grid
+        gridIcon = QIcon(':/images/themes/default/mActionSnapToGrid.svg')
+        self.gridAction = QAction(gridIcon, "Show W3W Grid", self.iface.mainWindow())
+        self.gridAction.triggered.connect(self.showW3WGrid)  # Connect the action to the method
+        self.iface.addToolBarIcon(self.gridAction)
+        self.iface.addPluginToMenu("what3words", self.gridAction)
+
         addSettingsMenu(
             "what3words", self.iface.addPluginToMenu)
         addHelpMenu(
@@ -75,6 +82,23 @@ class W3WTools(object):
             addLessonsFolder(folder, "what3words")
         except:
             pass
+
+    def showW3WGrid(self):
+        """
+        Method to trigger the What3words grid drawing.
+        Calls fetchAndDrawW3WGrid from the map tool if it's available.
+        """
+        apikey = pluginSetting("apiKey")
+        if apikey is None or apikey == "":
+            self._showMessage('what3words API key is not set. Please set it and try again.', QgsMessageBar.WARNING)
+            return
+
+        # Check if the map tool exists and if so, call the grid drawing method
+        if self.mapTool is None:
+            self.mapTool = W3WMapTool(self.iface.mapCanvas())
+        
+        # Call the method to draw the grid
+        self.mapTool.fetchAndDrawW3WGrid()
 
     def zoomTo(self):
         apikey = pluginSetting("apiKey")
@@ -108,6 +132,7 @@ class W3WTools(object):
         self.iface.removeToolBarIcon(self.toolAction)
         self.iface.removePluginMenu("what3words", self.toolAction)
         self.iface.removePluginMenu("what3words", self.zoomToAction)
+        self.iface.removePluginMenu("what3words", self.gridAction)  # Remove the grid action
 
         removeSettingsMenu("what3words")
         removeHelpMenu("what3words")
