@@ -24,7 +24,10 @@ class W3WTools(object):
 
     def __init__(self, iface):
         self.iface = iface
-
+        self.grid_enabled = False  # New flag to keep track of grid state
+        self.mapTool = None
+        self.provider = W3WProvider()
+        
         try:
             from qgistester.tests import addTestModule
 
@@ -32,10 +35,6 @@ class W3WTools(object):
             addTestModule(testerplugin, "what3words")
         except:
             pass
-
-        self.mapTool = None
-        
-        self.provider = W3WProvider()
 
         readSettings()
 
@@ -54,12 +53,13 @@ class W3WTools(object):
         self.zoomToAction.triggered.connect(self.zoomTo)
         self.iface.addPluginToMenu("what3words", self.zoomToAction)
 
-        # Adding a new action for drawing the W3W grid
+        # Add the grid toggle button
         gridIcon = QIcon(':/images/themes/default/mActionSnapToGrid.svg')
-        self.gridAction = QAction(gridIcon, "Show W3W Grid", self.iface.mainWindow())
-        self.gridAction.triggered.connect(self.showW3WGrid)  # Connect the action to the method
-        self.iface.addToolBarIcon(self.gridAction)
-        self.iface.addPluginToMenu("what3words", self.gridAction)
+        self.gridToggleAction = QAction(gridIcon, "Toggle W3W Grid", self.iface.mainWindow())
+        self.gridToggleAction.setCheckable(True)
+        self.gridToggleAction.triggered.connect(self.toggleGrid)  # Connect to grid toggle method
+        self.iface.addToolBarIcon(self.gridToggleAction)
+        self.iface.addPluginToMenu("what3words", self.gridToggleAction)
 
         addSettingsMenu(
             "what3words", self.iface.addPluginToMenu)
@@ -82,6 +82,20 @@ class W3WTools(object):
             addLessonsFolder(folder, "what3words")
         except:
             pass
+
+    def toggleGrid(self, checked):
+        """
+        Toggles the What3words grid on and off.
+        """
+        if self.mapTool is None:
+            self.mapTool = W3WMapTool(self.iface.mapCanvas())
+
+        if checked:
+            self.mapTool.enableGrid(True)
+            self._showMessage("W3W Grid enabled.", Qgis.Info)
+        else:
+            self.mapTool.enableGrid(False)
+            self._showMessage("W3W Grid disabled.", Qgis.Info)
 
     def showW3WGrid(self):
         """
@@ -128,11 +142,16 @@ class W3WTools(object):
         self.iface.mapCanvas().setMapTool(self.mapTool)
 
     def unload(self):
+        if self.mapTool and self.mapTool.grid_enabled:
+            self.mapTool.enableGrid(False)
+
+        self.iface.removeToolBarIcon(self.gridToggleAction)
+        self.iface.removePluginMenu("what3words", self.gridToggleAction)
+        
         self.iface.mapCanvas().unsetMapTool(self.mapTool)
         self.iface.removeToolBarIcon(self.toolAction)
         self.iface.removePluginMenu("what3words", self.toolAction)
-        self.iface.removePluginMenu("what3words", self.zoomToAction)
-        self.iface.removePluginMenu("what3words", self.gridAction)  # Remove the grid action
+        self.iface.removePluginMenu("what3words", self.zoomToAction)        
 
         removeSettingsMenu("what3words")
         removeHelpMenu("what3words")
