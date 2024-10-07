@@ -40,24 +40,22 @@ class W3WTools(object):
 
     def initGui(self):
         mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.png"))
-        self.toolAction = QAction(mapToolIcon, "what3words map tool",
-                                     self.iface.mainWindow())
+        self.toolAction = QAction(mapToolIcon, "what3words map tool", self.iface.mainWindow())
         self.toolAction.triggered.connect(self.setTool)
         self.toolAction.setCheckable(True)
         self.iface.addToolBarIcon(self.toolAction)
         self.iface.addPluginToMenu("what3words", self.toolAction)
 
         zoomToIcon = QIcon(':/images/themes/default/mActionZoomIn.svg')
-        self.zoomToAction = QAction(zoomToIcon, "Zoom to 3 word address",
-                                     self.iface.mainWindow())
+        self.zoomToAction = QAction(zoomToIcon, "Zoom to 3 word address", self.iface.mainWindow())
         self.zoomToAction.triggered.connect(self.zoomTo)
         self.iface.addPluginToMenu("what3words", self.zoomToAction)
 
-        # Add the grid toggle button
-        gridIcon = QIcon(':/images/themes/default/mActionSnapToGrid.svg')
-        self.gridToggleAction = QAction(gridIcon, "Toggle W3W Grid", self.iface.mainWindow())
+        # Add the grid toggle button with dynamic text updates
+        gridIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "map_settings_light.png"))        
+        self.gridToggleAction = QAction(gridIcon, "Show W3W Grid", self.iface.mainWindow())  # Initially set to "Show Grid"
         self.gridToggleAction.setCheckable(True)
-        self.gridToggleAction.triggered.connect(self.toggleGrid)  # Connect to grid toggle method
+        self.gridToggleAction.toggled.connect(self.toggleGrid)  # Use toggled instead of triggered for checkable actions
         self.iface.addToolBarIcon(self.gridToggleAction)
         self.iface.addPluginToMenu("what3words", self.gridToggleAction)
 
@@ -85,17 +83,22 @@ class W3WTools(object):
 
     def toggleGrid(self, checked):
         """
-        Toggles the What3words grid on and off.
+        Toggles the What3words grid on and off and updates the button text.
+        The grid is shown or hidden immediately after the button is clicked.
         """
         if self.mapTool is None:
             self.mapTool = W3WMapTool(self.iface.mapCanvas())
 
         if checked:
             self.mapTool.enableGrid(True)
+            self.gridToggleAction.setText("Hide W3W Grid")  # Update button text to "Hide Grid"
             self._showMessage("W3W Grid enabled.", Qgis.Info)
+            self.mapTool.fetchAndDrawW3WGrid()  # Immediately show the grid
         else:
             self.mapTool.enableGrid(False)
+            self.gridToggleAction.setText("Show W3W Grid")  # Update button text to "Show Grid"
             self._showMessage("W3W Grid disabled.", Qgis.Info)
+            self.mapTool.removeGridLayer()  # Immediately hide the grid
 
     def showW3WGrid(self):
         """

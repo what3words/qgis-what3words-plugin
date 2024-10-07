@@ -170,13 +170,19 @@ class W3WMapTool(QgsMapTool):
     def removeGridLayer(self):
         """
         Safely removes the grid layer from the project, if it exists.
+        This method ensures that the grid layer is completely removed from the QGIS project.
         """
         if self.grid_layer:
             # Check if the layer still exists in the project
-            layers = QgsProject.instance().mapLayersByName(self.grid_layer.name())
-            if layers:
-                QgsProject.instance().removeMapLayer(layers[0])
-            self.grid_layer = None  # Clear the reference to avoid using a deleted object
+            grid_layer_id = self.grid_layer.id()
+            layer_in_project = QgsProject.instance().mapLayer(grid_layer_id)
+
+            if layer_in_project:
+                # Remove the grid layer from the project
+                QgsProject.instance().removeMapLayer(layer_in_project)
+            
+            # Clear the reference to the grid layer to prevent any further access to it
+            self.grid_layer = None
 
 
     def ensureGridLayer(self):
