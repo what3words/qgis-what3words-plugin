@@ -23,6 +23,7 @@ SOFTWARE.
 
 import urllib.parse
 import json
+import re
 from qgiscommons2.network.networkaccessmanager import NetworkAccessManager
 from qgis.utils import iface
 from qgis.core import Qgis
@@ -161,6 +162,27 @@ class what3words(object):
 
         url = self.host + '/v3/autosuggest'
         return self.postRequest(url, params)
+    
+    def is_possible_3wa(self, text: str) -> bool:
+        """
+        Determines if the string passed in is in the form of a possible three-word address.
+        :param text: Text to check
+        :return: True if possible 3 word address, False otherwise
+        """
+        regex_match = r"^\/*(?:[^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]{1,}[.｡。･・︒។։။۔።।][^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]{1,}[.｡。･・︒។։۔።।][^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]{1,}|[<.,>?\/\";:£§º©®\s]+[.｡。･・︒។։။۔።।][^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]+|[^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]+([\u0020\u00A0][^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]+){1,3}[.｡。･・︒។։۔።।][^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]+([\u0020\u00A0][^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]+){1,3}[.｡。･・︒។։။۔።।][^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]+([\u0020\u00A0][^0-9`~!@#$%^&*()+\-_=\[\{\]}\\|'<>.,?\/\";:£§º©®\s]+){1,3})$"
+        return re.match(regex_match, text) is not None
+
+    def is_valid_3wa(self, text: str) -> bool:
+        """
+        Determines if the string passed in is a real three-word address by calling the API.
+        :param text: Text to check
+        :return: True if valid 3 word address, False otherwise
+        """
+        if self.is_possible_3wa(text):
+            result = self.w3w.autosuggest(text, n_results=1)  # Check for the top result
+            if result["suggestions"] and result["suggestions"][0]["words"] == text:
+                return True
+        return False
 
     def postRequest(self, url, params):
         """

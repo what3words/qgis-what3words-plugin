@@ -1,28 +1,24 @@
 from builtins import str
-# -*- coding: utf-8 -*-
-#
-# (c) 2016 Boundless, http://boundlessgeo.com
-# This code is licensed under the GPL 2.0 license.
-#
-
 import os
+from PyQt5.QtCore import QSize
+from PyQt5.QtWidgets import (QLineEdit, QDockWidget, QHBoxLayout, QVBoxLayout, QLabel,
+                             QPushButton, QListWidget, QListWidgetItem, QWidget, QCheckBox, QApplication, QSizePolicy)
 from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform,
                        QgsProject, QgsPointXY, QgsVectorLayer, QgsFeature,
-                       QgsGeometry, QgsField)
+                       QgsGeometry, QgsField, QgsFillSymbol, QgsSimpleFillSymbolLayer, QgsSvgMarkerSymbolLayer)
 from qgis.PyQt.QtCore import Qt, QStringListModel, QVariant
 from qgis.PyQt.QtGui import QCursor, QPalette
-from qgis.PyQt.QtWidgets import (QApplication, QDockWidget, QHBoxLayout, QLabel,
-                                 QLineEdit, QWidget, QCompleter, QListView)
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
-from what3words.w3w import what3words
 
+from what3words.w3w import what3words
 
 class W3WCoordInputDialog(QDockWidget):
     def __init__(self, canvas, parent):
         self.canvas = canvas
-        self.square_layer = None  # Layer for drawing the w3w square
-        self.zoom_level = 20  # Default zoom level set to 20
+        self.marker_layer = None
+        self.square_layer = None
+        self.zoom_level = 19  # Default zoom level
         QDockWidget.__init__(self, parent)
         self.setAllowedAreas(Qt.TopDockWidgetArea)
         self.initGui()
@@ -36,32 +32,47 @@ class W3WCoordInputDialog(QDockWidget):
     def initGui(self):
         self.setWindowTitle("Zoom to what3words address")
 
-        # Set up the UI
-        self.label = QLabel('what3words address')
+        # Input field for the what3words address
         self.coordBox = QLineEdit()
+        self.coordBox.setPlaceholderText("e.g. ///filled.count.soap")
 
-        # Auto-suggest functionality
-        self.completer = QCompleter()
-        self.completer.setPopup(QListView())  # Use a list view for better control of the styling
-        self.completer.setCompletionMode(QCompleter.PopupCompletion)  # Show the popup
-        self.completer.activated.connect(self.zoomToSelected)  # Zoom to selected suggestion
-        self.coordBox.setCompleter(self.completer)
-        self.coordBox.textChanged.connect(self.suggestW3W)
+        # Suggestions list widget
+        self.suggestionsList = QListWidget()
+        self.suggestionsList.setVisible(False)  # Hide the list until we have suggestions
+        self.suggestionsList.itemClicked.connect(self.onSuggestionSelected)  # Handle suggestion click
 
-        # Layout
+        # Button to display W3W square
+        self.showSquareButton = QPushButton("Zoom To")
+        self.showSquareButton.setEnabled(False)  # Initially disabled
+        self.showSquareButton.clicked.connect(self.showW3WSquare)
+
+        # Checkbox for enabling bounding box
+        self.boundingBoxCheckbox = QCheckBox("Use Bounding Box")
+
+        # Layout setup
         hlayout = QHBoxLayout()
-        hlayout.addWidget(self.label)
         hlayout.addWidget(self.coordBox)
+        hlayout.addWidget(self.boundingBoxCheckbox)  # Align checkbox next to input field
+
+        # Vertical layout to place suggestions below input field
+        vlayout = QVBoxLayout()
+        vlayout.addLayout(hlayout)
+        vlayout.addWidget(self.suggestionsList)
+
+        # Set the widget layout
         dockWidgetContents = QWidget()
-        dockWidgetContents.setLayout(hlayout)
+        dockWidgetContents.setLayout(vlayout)
         self.setWidget(dockWidgetContents)
+
+        # Connect the text change event to fetch suggestions
+        self.coordBox.textChanged.connect(self.suggestW3W)
 
         # Handle dark mode
         self.handleDarkMode()
 
     def handleDarkMode(self):
         """
-        Adjusts the input box style and forces text color to be black.
+        Adjusts the input box style for dark mode, forcing text color to be visible.
         """
         palette = self.coordBox.palette()
         palette.setColor(QPalette.Text, Qt.black)  # Force text to be black
@@ -72,61 +83,140 @@ class W3WCoordInputDialog(QDockWidget):
         """
         Fetches suggestions based on the input text for autosuggest functionality.
         Trigger suggestions after at least the first letter of the 3rd word is entered.
+        If the bounding box checkbox is checked, clip the suggestions to the map view.
         """
-        if text.count('.') < 2 or len(text.split('.')[-1]) < 1:
-            return  # Only suggest after second dot and at least 1 character in the 3rd word
+
+        self.suggestionsList.clear()  # Clear previous suggestions
+        self.suggestionsList.setVisible(False)  # Hide the list initially
 
         apiKey = pluginSetting("apiKey")
         addressLanguage = pluginSetting("addressLanguage")
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
 
-        try:
-            suggestions = self.w3w.autosuggest(text)
-            # Limit to 3 suggestions and only show the what3words address
-            suggestion_list = [suggestion['words'] for suggestion in suggestions['suggestions'][:3]]
+        # Ensure this is a possible what3words address format
+        if not self.w3w.is_possible_3wa(text):
+            return
 
-            # Create a model for the completer with the what3words suggestions
-            completer_model = QStringListModel(suggestion_list)
-            self.completer.setModel(completer_model)
-            self.completer.complete()  # Show the suggestions dropdown
+        try:
+            # Check if the bounding box checkbox is checked
+            if self.boundingBoxCheckbox.isChecked():
+                # Apply bounding box if checkbox is checked
+                extent = self.canvas.extent()
+                canvasCrs = self.canvas.mapSettings().destinationCrs()
+                epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
+                transform4326 = QgsCoordinateTransform(canvasCrs, epsg4326, QgsProject.instance())
+                bottom_left = transform4326.transform(extent.xMinimum(), extent.yMinimum())
+                top_right = transform4326.transform(extent.xMaximum(), extent.yMaximum())
+                bbox = f"{bottom_left.y()},{bottom_left.x()},{top_right.y()},{top_right.x()}"
+                suggestions = self.w3w.autosuggest(text, clip_to_bounding_box=bbox)
+            else:
+                # Fetch suggestions without bounding box
+                suggestions = self.w3w.autosuggest(text)
+
+            # Ensure we have suggestions in the response
+            if 'suggestions' in suggestions and len(suggestions['suggestions']) > 0:
+                for suggestion in suggestions['suggestions']:
+                    # Customize display format: "///filled.count.soap, NearestPlace, Country"
+                    item_text = f"///{suggestion['words']}, {suggestion['nearestPlace']}, {suggestion['country']}"
+                    item = QListWidgetItem()
+                    item.setText(item_text)
+                    item.setTextAlignment(Qt.AlignLeft)
+                    self.suggestionsList.addItem(item)
+
+                # Adjust the height to fit the number of lines without scrollbar
+                self.suggestionsList.setVisible(True)
+
+                # Fix height to show 3 items (adjust row size accordingly)
+                num_items = min(len(suggestions['suggestions']), 3)
+                total_height = self.suggestionsList.sizeHintForRow(0) * num_items
+                self.suggestionsList.setFixedHeight(total_height)
+
+                # Set a fixed width for the suggestion list to prevent horizontal scrolling
+                self.suggestionsList.setFixedWidth(self.coordBox.width())
+
+                # Set the style for the suggestions dropdown
+                self.suggestionsList.setStyleSheet("""
+                    QListWidget {
+                        background-color: white; 
+                        color: #000000; 
+                        padding: 0px; 
+                        border: 1px solid #E0E0E0;
+                    }
+                    QListWidget::item {
+                        padding: 2px 6px;
+                        color: #000000;
+                    }
+                    QListWidget::item:selected {
+                        background-color: #E0E0E0; 
+                        color: #696969; 
+                    }
+                """)
+
+                # Ensure scrollbars are disabled
+                self.suggestionsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+                self.suggestionsList.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+                # Adjust the height to fit the contents
+                num_items = self.suggestionsList.count()
+                item_height = self.suggestionsList.sizeHintForRow(0)
+                total_height = item_height * num_items
+                self.suggestionsList.setFixedHeight(total_height)
+
+                # Position the dropdown directly below the input field
+                self.suggestionsList.move(self.coordBox.x(), self.coordBox.y() + self.coordBox.height())
+
+                # Set size policy to ensure no extra space is allocated
+                self.suggestionsList.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+
         except Exception as e:
-            iface.messageBar().pushMessage("what3words", 
-                f"Error fetching suggestions: {str(e)}", level=Qgis.Warning, duration=5)
+            pass  # Silently fail for suggestions fetching
 
-    def zoomToSelected(self, selected_text):
+    def onSuggestionSelected(self, item):
         """
-        Zoom to the selected what3words address from the suggestions.
+        Handles the event when a suggestion is selected from the list.
+        """
+        selected_text = item.text()  # Get the selected what3words address
+        self.coordBox.setText(selected_text.split(',')[0].replace("<span style='color:red'>///", "").replace("</span>", ""))  # Update the input box with the selected address        self.suggestionsList.setVisible(False)  # Hide the suggestions list
+        self.suggestionsList.setVisible(False)  # Hide the suggestions list
+        self.showW3WSquare()
+
+    def showW3WSquare(self, selected_text=None):
+        """
+        Show the W3W square on the map when a suggestion is selected.
         """
         apiKey = pluginSetting("apiKey")
         addressLanguage = pluginSetting("addressLanguage")
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
 
         try:
-            w3wCoord = str(selected_text).replace(" ", "")
-            QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
-            json = self.w3w.convertToCoordinates(w3wCoord)
+            # Get the selected what3words address
+            if selected_text is None:
+                w3wCoord = str(self.coordBox.text()).replace(" ", "")
+            else:
+                w3wCoord = str(selected_text).replace(" ", "")
+
+            # Make the API call to get the what3words square
+            response_json = self.w3w.convertToCoordinates(w3wCoord)
 
             # Check if required keys are present in the API response
-            if 'coordinates' not in json or 'square' not in json or 'words' not in json:
+            if 'coordinates' not in response_json or 'square' not in response_json or 'words' not in response_json:
                 raise ValueError("Invalid API response: Missing required data.")
 
-            lat = float(json["coordinates"]["lat"])
-            lon = float(json["coordinates"]["lng"])
-            square = json["square"]
-
-            # Transform the center point to the canvas CRS
+            # Get the canvas CRS (coordinate reference system)
             canvasCrs = self.canvas.mapSettings().destinationCrs()
+
+            # Draw the what3words square on the map using the response data and canvas CRS
+            self.drawW3WSquare(response_json, canvasCrs)
+
+            # Zoom to the center point of the square
+            lat = float(response_json["coordinates"]["lat"])
+            lon = float(response_json["coordinates"]["lng"])
             epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
             transform4326 = QgsCoordinateTransform(epsg4326, canvasCrs, QgsProject.instance())
             center = transform4326.transform(lon, lat)
-
-            # Zoom to the point with user-defined zoom level (zoom set to 20)
             self.canvas.setCenter(center)
-            self.canvas.zoomScale(591657550.5 / (2 ** self.zoom_level))  # Zoom to level 20
+            self.canvas.zoomScale(591657550.5 / (2 ** self.zoom_level))  # Adjust the zoom level
             self.canvas.refresh()
-
-            # Draw the what3words square on the map
-            self.drawW3WSquare(json)
 
         except ValueError as ve:
             iface.messageBar().pushMessage("what3words", f"Value Error: {str(ve)}", level=Qgis.Warning, duration=5)
@@ -135,9 +225,9 @@ class W3WCoordInputDialog(QDockWidget):
         finally:
             QApplication.restoreOverrideCursor()
 
-    def drawW3WSquare(self, json):
+    def drawW3WSquare(self, json, canvasCrs):
         """
-        Draw the what3words square as a polygon on the map and add API info as attributes.
+        Draw the what3words square as a polygon on the map and use an SVG marker as fill.
         """
         square = json["square"]
 
@@ -150,7 +240,7 @@ class W3WCoordInputDialog(QDockWidget):
         southwest = square["southwest"]
         northeast = square["northeast"]
 
-        # Create the polygon for the square
+        # Create the polygon for the square in EPSG:4326 (WGS84)
         bottom_left = QgsPointXY(southwest["lng"], southwest["lat"])
         top_right = QgsPointXY(northeast["lng"], northeast["lat"])
         top_left = QgsPointXY(southwest["lng"], northeast["lat"])
@@ -159,8 +249,9 @@ class W3WCoordInputDialog(QDockWidget):
         points = [bottom_left, top_left, top_right, bottom_right, bottom_left]
         polygon = QgsGeometry.fromPolygonXY([points])
 
-        # Create a memory layer for the square (if not already created)
-        if not self.square_layer:
+        # Check if the square_layer still exists and is valid
+        if not self.square_layer or not QgsProject.instance().mapLayersByName(self.square_layer.name()):
+            # The layer doesn't exist anymore or is invalid, recreate it
             self.square_layer = QgsVectorLayer("Polygon?crs=EPSG:4326", "W3W Square", "memory")
             provider = self.square_layer.dataProvider()
 
@@ -189,8 +280,28 @@ class W3WCoordInputDialog(QDockWidget):
             json['coordinates']['lng']
         ])
 
-        self.square_layer.dataProvider().addFeatures([feature])
-        self.square_layer.updateExtents()
+        # Ensure the square layer is valid before adding features
+        if self.square_layer:
+            self.square_layer.dataProvider().addFeatures([feature])
+            self.square_layer.updateExtents()
+
+            # Apply SVG marker for the square
+            svg_path = os.path.join(os.path.dirname(__file__), 'icons', 'w3w.svg')
+            if os.path.exists(svg_path):
+                symbol = QgsFillSymbol()
+
+                # Add a simple fill layer for the polygon
+                simple_fill_layer = QgsSimpleFillSymbolLayer()
+                symbol.changeSymbolLayer(0, simple_fill_layer)
+
+                # Add the SVG marker at the centroid of the square
+                svg_marker_layer = QgsSvgMarkerSymbolLayer(svg_path)
+                symbol.appendSymbolLayer(svg_marker_layer)
+
+                # Set the renderer for the layer
+                self.square_layer.renderer().setSymbol(symbol)
+                self.square_layer.triggerRepaint()
+
 
     def closeEvent(self, evt):
         """
