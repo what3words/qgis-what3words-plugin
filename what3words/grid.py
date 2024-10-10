@@ -1,19 +1,18 @@
-# -*- coding: utf-8 -*-
-#
-# (c) 2024 what3words
-# This code is licensed under the GPL 2.0 license.
-#
+import os
+import json
 
 from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform,
-                       QgsProject, QgsVectorLayer, QgsFeature, QgsGeometry,
-                       QgsPoint, QgsLineSymbol, QgsSingleSymbolRenderer, QgsMapLayer)
+                       QgsProject, QgsVectorLayer, QgsFeature, QgsGeometry, QgsPoint,
+                       QgsLineSymbol, QgsSingleSymbolRenderer, QgsMapLayer,
+                       QgsField, QgsVectorFileWriter)
 from qgis.gui import QgsMessageBar
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QVariant
 from qgis.PyQt.QtGui import QCursor
-from qgis.PyQt.QtWidgets import QApplication
+from qgis.PyQt.QtWidgets import QApplication, QFileDialog, QMessageBox
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
 from what3words.w3w import what3words
+
 
 
 class W3WGridManager:
@@ -26,20 +25,75 @@ class W3WGridManager:
         self.w3w = what3words(apikey=apiKey)
         self.grid_layer = None  # Store reference to the grid layer
         self.grid_enabled = False  # Track whether grid is enabled
+        self.geojson_path = os.path.join(os.path.dirname(__file__), "w3w_grid.geojson")
 
     def enableGrid(self, enable=True):
         """
         Enables or disables the automatic fetching of the W3W grid based on map movement.
-        If the grid is disabled, the layer is removed.
+        Does not remove the grid layer when disabled, but stops drawing new grids.
+        If the grid layer is manually removed, it prompts the user to save before disabling.
         """
         self.grid_enabled = enable
 
         if enable:
-            iface.mapCanvas().extentsChanged.connect(self.fetchAndDrawW3WGrid)
-            self.fetchAndDrawW3WGrid()
+            try:
+                # Check if the layer still exists or has been manually deleted
+                if not self.grid_layer or not QgsProject.instance().mapLayersByName(self.grid_layer.name()):
+                    # The layer doesn't exist anymore, recreate it
+                    self.ensureGridLayer()
+
+                iface.mapCanvas().extentsChanged.connect(self.fetchAndDrawW3WGrid)
+                self.fetchAndDrawW3WGrid()
+            
+            except RuntimeError as e:
+                iface.messageBar().pushMessage("what3words", 
+                    "The grid layer has been manually deleted and cannot be recreated. Please reload the plugin.",
+                    level=Qgis.Critical, duration=5)
+
         else:
-            iface.mapCanvas().extentsChanged.disconnect(self.fetchAndDrawW3WGrid)
-            self.removeGridLayer()
+            try:
+                # Check if the grid layer still exists before disabling
+                if not self.grid_layer or not QgsProject.instance().mapLayersByName(self.grid_layer.name()):
+                    save_choice = iface.messageBar().question(
+                        iface.mainWindow(), 
+                        "Save Grid", 
+                        "The grid layer has been removed. Do you want to save the grid before disabling?",
+                        buttons=QMessageBox.Yes | QMessageBox.No
+                    )
+
+                    if save_choice == QMessageBox.Yes:
+                        self.saveGridToFile()  # This function should export the grid to a file
+                    else:
+                        iface.messageBar().pushMessage("Grid", "Grid layer was lost and not saved.", level=Qgis.Warning)
+
+                iface.mapCanvas().extentsChanged.disconnect(self.fetchAndDrawW3WGrid)
+
+            except RuntimeError:
+                iface.messageBar().pushMessage("what3words", 
+                    "Error: The grid layer has been deleted. Please reload the plugin to restore the grid.",
+                    level=Qgis.Critical, duration=5)
+
+
+    def saveGridToFile(self):
+        """
+        Exports the grid layer to a GeoJSON file if the user chooses to save the grid.
+        """
+        if not self.grid_layer:
+            iface.messageBar().pushMessage("Grid", "No grid layer to save.", level=Qgis.Warning)
+            return
+
+        file_dialog = QFileDialog()
+        file_path, _ = file_dialog.getSaveFileName(
+            iface.mainWindow(),
+            "Save Grid Layer As", "", "GeoJSON Files (*.geojson);;All Files (*)"
+        )
+
+        if file_path:
+            QgsVectorFileWriter.writeAsVectorFormat(self.grid_layer, file_path, "utf-8", self.grid_layer.crs(), "GeoJSON")
+            iface.messageBar().pushMessage("Grid", "Grid layer saved successfully.", level=Qgis.Info)
+        else:
+            iface.messageBar().pushMessage("Grid", "Save operation canceled.", level=Qgis.Warning)
+
 
     def fetchAndDrawW3WGrid(self):
         """
@@ -58,31 +112,49 @@ class W3WGridManager:
                 level=Qgis.Warning, duration=3)
             return
 
+        # Get the map canvas CRS (which might not be WGS84)
         canvasCrs = self.canvas.mapSettings().destinationCrs()
+
+        # Create a transform object to convert the coordinates to WGS84 (EPSG:4326)
         transform = QgsCoordinateTransform(canvasCrs, self.epsg4326, QgsProject.instance())
+
+        # Transform the extent coordinates to EPSG:4326 (WGS84)
         bottom_left = transform.transform(extent.xMinimum(), extent.yMinimum())
         top_right = transform.transform(extent.xMaximum(), extent.yMaximum())
 
+        # Create the bounding box string in WGS84 for the API call
         bounding_box = f"{bottom_left.y()},{bottom_left.x()},{top_right.y()},{top_right.x()}"
 
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
             grid_data = self.w3w.getGridSection(bounding_box)
 
+            # Ensure that the grid layer exists
             self.ensureGridLayer()
 
+            # Get the data provider for the grid layer
             pr = self.grid_layer.dataProvider()
+
+            # Clear any existing features in the layer (to avoid duplicates)
             self.grid_layer.startEditing()
             pr.deleteFeatures([f.id() for f in self.grid_layer.getFeatures()])
             self.grid_layer.commitChanges()
 
+            # Loop through the grid lines and add them as features to the layer
             for line in grid_data['lines']:
                 point1 = QgsPoint(line['start']['lng'], line['start']['lat'])
                 point2 = QgsPoint(line['end']['lng'], line['end']['lat'])
+                
                 feature = QgsFeature()
                 feature.setGeometry(QgsGeometry.fromPolyline([point1, point2]))
+
+                # Set the south, west, north, and east attributes based on the bounding box
+                feature.setAttributes([bottom_left.y(), bottom_left.x(), top_right.y(), top_right.x()])
+                
+                # Add the feature to the data provider
                 pr.addFeature(feature)
 
+            # Update the layer's extents and trigger a repaint
             self.grid_layer.updateExtents()
             self.applyGridSymbology()
 
@@ -92,29 +164,117 @@ class W3WGridManager:
         finally:
             QApplication.restoreOverrideCursor()
 
-    def removeGridLayer(self):
+
+    def saveGridToLayer(self, grid_data, bottom_left, top_right):
         """
-        Safely removes the grid layer from the project, if it exists.
+        Saves the grid data and bounding box (as south, west, north, east) to a vector layer in QGIS.
         """
-        if self.grid_layer:
-            layers = QgsProject.instance().mapLayersByName(self.grid_layer.name())
-            if layers:
-                QgsProject.instance().removeMapLayer(layers[0])
-            self.grid_layer = None
+        # Ensure the grid layer exists
+        self.ensureGridLayer()
+
+        # Get the data provider for the grid layer
+        provider = self.grid_layer.dataProvider()
+
+        # Convert bounding box into individual lat/lng values (south, west, north, east)
+        bounds = {
+            "south": bottom_left.y(),
+            "west": bottom_left.x(),
+            "north": top_right.y(),
+            "east": top_right.x()
+        }
+
+        # Ensure the grid_layer has fields for south, west, north, east
+        if not self.grid_layer.fields().indexOf('south') >= 0:
+            provider.addAttributes([
+                QgsField("south", QVariant.Double),
+                QgsField("west", QVariant.Double),
+                QgsField("north", QVariant.Double),
+                QgsField("east", QVariant.Double)
+            ])
+            self.grid_layer.updateFields()  # Update layer's fields
+
+        # Check if the same bounding box has already been added
+        existing_features = [f for f in self.grid_layer.getFeatures()]
+        for feature in existing_features:
+            if (feature['south'] == bounds['south'] and feature['west'] == bounds['west'] and
+                feature['north'] == bounds['north'] and feature['east'] == bounds['east']):
+                # Skip adding the bounding box if it's already in the layer
+                return
+
+        # Add new features (grid lines) and the bounding box information to the grid layer
+        for line in grid_data['lines']:
+            feature = QgsFeature()
+
+            # Create the LineString geometry for the grid line
+            point1 = QgsPoint(line['start']['lng'], line['start']['lat'])
+            point2 = QgsPoint(line['end']['lng'], line['end']['lat'])
+            feature.setGeometry(QgsGeometry.fromPolyline([point1, point2]))
+
+            # Set the attributes for the bounding box (south, west, north, east)
+            feature.setAttributes([
+                bounds['south'],
+                bounds['west'],
+                bounds['north'],
+                bounds['east']
+            ])
+
+            # Add the feature to the layer
+            provider.addFeature(feature)
+
+        # Update the layer extents and repaint
+        self.grid_layer.updateExtents()
+        self.grid_layer.triggerRepaint()
 
     def ensureGridLayer(self):
         """
         Ensures that the grid layer exists. If it doesn't, this method recreates it.
         """
+        # Check if the layer exists in the project
         if not self.grid_layer or not QgsProject.instance().mapLayersByName(self.grid_layer.name()):
+            # The layer doesn't exist anymore or was deleted, recreate it
             self.grid_layer = QgsVectorLayer("LineString", "W3W Grid", "memory")
+            
+            # Define the attributes for the grid layer
+            pr = self.grid_layer.dataProvider()
+            pr.addAttributes([
+                QgsField("south", QVariant.Double),
+                QgsField("west", QVariant.Double),
+                QgsField("north", QVariant.Double),
+                QgsField("east", QVariant.Double)
+            ])
+            self.grid_layer.updateFields()
+
             QgsProject.instance().addMapLayer(self.grid_layer)
+        else:
+            # Reset the layer if it has been deleted manually
+            layers = QgsProject.instance().mapLayersByName(self.grid_layer.name())
+            if not layers:
+                # Recreate the layer if it's not valid anymore
+                self.grid_layer = QgsVectorLayer("LineString", "W3W Grid", "memory")
+                QgsProject.instance().addMapLayer(self.grid_layer)
+
+
+    def removeGridLayer(self):
+        """
+        Safely checks if the grid layer exists. If removed manually, prompt to save.
+        """
+        if self.grid_layer:
+            layers = QgsProject.instance().mapLayersByName(self.grid_layer.name())
+            if layers:
+                # The grid layer still exists; don't remove it when disabling
+                return
+            else:
+                # The grid layer has been manually removed
+                iface.messageBar().pushMessage("Grid", "The grid layer was manually removed.", level=Qgis.Warning)
+                self.grid_layer = None
+        else:
+            iface.messageBar().pushMessage("Grid", "No grid layer found to remove.", level=Qgis.Warning)
 
     def applyGridSymbology(self):
         """
         Applies symbology to the W3W grid layer based on whether a satellite or vector map is active.
         """
-        satellite_keywords = ['satellite', 'google', 'imagery', 'arcgis satellite', 'bing aerial', 'google satellite']
+        satellite_keywords = ['satellite', 'google satellite', 'imagery', 'arcgis satellite', 'bing aerial', 'google satellite']
         is_satellite_map = False
 
         layers = list(QgsProject.instance().mapLayers().values())
