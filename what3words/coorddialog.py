@@ -1,26 +1,23 @@
 from builtins import str
 import os
-from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import (QLineEdit, QDockWidget, QHBoxLayout, QVBoxLayout, QLabel,
-                             QPushButton, QListWidget, QListWidgetItem, QWidget, QCheckBox, QApplication, QSizePolicy)
-from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform,
-                       QgsProject, QgsPointXY, QgsVectorLayer, QgsFeature,
-                       QgsGeometry, QgsField, QgsFillSymbol, QgsSimpleFillSymbolLayer, QgsSvgMarkerSymbolLayer)
-from qgis.PyQt.QtCore import Qt, QStringListModel, QVariant
+from PyQt5.QtWidgets import (QLineEdit, QDockWidget, QHBoxLayout, QVBoxLayout, QPushButton,
+                             QListWidget, QListWidgetItem, QWidget, QCheckBox, QApplication)
+from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject)
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QCursor, QPalette
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
+from what3words.shared_layer import W3WSquareLayerManager
 
 from what3words.w3w import what3words
 
 class W3WCoordInputDialog(QDockWidget):
     def __init__(self, canvas, parent):
         self.canvas = canvas
-        self.marker_layer = None
-        self.square_layer = None
         self.zoom_level = 19  # Default zoom level
         QDockWidget.__init__(self, parent)
         self.setAllowedAreas(Qt.TopDockWidgetArea)
+        self.square_layer_manager = W3WSquareLayerManager.getInstance()  # Use singleton instance
         self.initGui()
 
     def setApiKey(self, apikey):
@@ -116,16 +113,11 @@ class W3WCoordInputDialog(QDockWidget):
             # Ensure we have suggestions in the response
             if 'suggestions' in suggestions and len(suggestions['suggestions']) > 0:
                 for suggestion in suggestions['suggestions']:
-                    # Customize display format: "///filled.count.soap, NearestPlace, Country"
                     item_text = f"///{suggestion['words']}, {suggestion['nearestPlace']}, {suggestion['country']}"
-                    item = QListWidgetItem()
-                    item.setText(item_text)
-                    item.setTextAlignment(Qt.AlignLeft)
+                    item = QListWidgetItem(item_text)
                     self.suggestionsList.addItem(item)
 
-                # Adjust the height to fit the number of lines without scrollbar
-                self.suggestionsList.setVisible(True)
-
+                self.suggestionsList.setVisible(True)  # Show suggestions
                 # Fix height to show 3 items (adjust row size accordingly)
                 num_items = min(len(suggestions['suggestions']), 3)
                 total_height = self.suggestionsList.sizeHintForRow(0) * num_items
@@ -176,7 +168,7 @@ class W3WCoordInputDialog(QDockWidget):
         Handles the event when a suggestion is selected from the list.
         """
         selected_text = item.text()  # Get the selected what3words address
-        self.coordBox.setText(selected_text.split(',')[0].replace("<span style='color:red'>///", "").replace("</span>", ""))  # Update the input box with the selected address        self.suggestionsList.setVisible(False)  # Hide the suggestions list
+        self.coordBox.setText(selected_text.split(',')[0].replace("///", ""))  # Update the input box with the selected address
         self.suggestionsList.setVisible(False)  # Hide the suggestions list
         self.showW3WSquare()
 
@@ -198,19 +190,13 @@ class W3WCoordInputDialog(QDockWidget):
             # Make the API call to get the what3words square
             response_json = self.w3w.convertToCoordinates(w3wCoord)
 
-            # Check if required keys are present in the API response
-            if 'coordinates' not in response_json or 'square' not in response_json or 'words' not in response_json:
-                raise ValueError("Invalid API response: Missing required data.")
-
-            # Get the canvas CRS (coordinate reference system)
-            canvasCrs = self.canvas.mapSettings().destinationCrs()
-
-            # Draw the what3words square on the map using the response data and canvas CRS
-            self.drawW3WSquare(response_json, canvasCrs)
+            # Add the W3W square to the shared layer
+            self.square_layer_manager.addSquareFeature(response_json)
 
             # Zoom to the center point of the square
             lat = float(response_json["coordinates"]["lat"])
             lon = float(response_json["coordinates"]["lng"])
+            canvasCrs = self.canvas.mapSettings().destinationCrs()
             epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
             transform4326 = QgsCoordinateTransform(epsg4326, canvasCrs, QgsProject.instance())
             center = transform4326.transform(lon, lat)
@@ -218,95 +204,7 @@ class W3WCoordInputDialog(QDockWidget):
             self.canvas.zoomScale(591657550.5 / (2 ** self.zoom_level))  # Adjust the zoom level
             self.canvas.refresh()
 
-        except ValueError as ve:
-            iface.messageBar().pushMessage("what3words", f"Value Error: {str(ve)}", level=Qgis.Warning, duration=5)
         except Exception as e:
             iface.messageBar().pushMessage("what3words", f"The Error is: {str(e)}", level=Qgis.Warning, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
-
-    def drawW3WSquare(self, json, canvasCrs):
-        """
-        Draw the what3words square as a polygon on the map and use an SVG marker as fill.
-        """
-        square = json["square"]
-
-        # Check if 'square', 'coordinates', and 'words' exist in the API response
-        if 'southwest' not in square or 'northeast' not in square:
-            iface.messageBar().pushMessage("what3words", "Invalid API response: Missing square data.", level=Qgis.Critical, duration=5)
-            return
-
-        # Coordinates of the square
-        southwest = square["southwest"]
-        northeast = square["northeast"]
-
-        # Create the polygon for the square in EPSG:4326 (WGS84)
-        bottom_left = QgsPointXY(southwest["lng"], southwest["lat"])
-        top_right = QgsPointXY(northeast["lng"], northeast["lat"])
-        top_left = QgsPointXY(southwest["lng"], northeast["lat"])
-        bottom_right = QgsPointXY(northeast["lng"], southwest["lat"])
-
-        points = [bottom_left, top_left, top_right, bottom_right, bottom_left]
-        polygon = QgsGeometry.fromPolygonXY([points])
-
-        # Check if the square_layer still exists and is valid
-        if not self.square_layer or not QgsProject.instance().mapLayersByName(self.square_layer.name()):
-            # The layer doesn't exist anymore or is invalid, recreate it
-            self.square_layer = QgsVectorLayer("Polygon?crs=EPSG:4326", "W3W Square", "memory")
-            provider = self.square_layer.dataProvider()
-
-            # Define attributes (columns) for the layer
-            provider.addAttributes([
-                QgsField("words", QVariant.String),
-                QgsField("nearestPlace", QVariant.String),
-                QgsField("country", QVariant.String),
-                QgsField("lat", QVariant.Double),
-                QgsField("lng", QVariant.Double)
-            ])
-            self.square_layer.updateFields()  # Update layer's fields
-
-            QgsProject.instance().addMapLayer(self.square_layer)
-
-        # Add the square feature with attributes
-        feature = QgsFeature()
-        feature.setGeometry(polygon)
-
-        # Set attributes from the API response
-        feature.setAttributes([
-            json.get('words', ''),
-            json.get('nearestPlace', ''),
-            json.get('country', ''),
-            json['coordinates']['lat'],
-            json['coordinates']['lng']
-        ])
-
-        # Ensure the square layer is valid before adding features
-        if self.square_layer:
-            self.square_layer.dataProvider().addFeatures([feature])
-            self.square_layer.updateExtents()
-
-            # Apply SVG marker for the square
-            svg_path = os.path.join(os.path.dirname(__file__), 'icons', 'w3w.svg')
-            if os.path.exists(svg_path):
-                symbol = QgsFillSymbol()
-
-                # Add a simple fill layer for the polygon
-                simple_fill_layer = QgsSimpleFillSymbolLayer()
-                symbol.changeSymbolLayer(0, simple_fill_layer)
-
-                # Add the SVG marker at the centroid of the square
-                svg_marker_layer = QgsSvgMarkerSymbolLayer(svg_path)
-                symbol.appendSymbolLayer(svg_marker_layer)
-
-                # Set the renderer for the layer
-                self.square_layer.renderer().setSymbol(symbol)
-                self.square_layer.triggerRepaint()
-
-
-    def closeEvent(self, evt):
-        """
-        Clean up layers when the dialog is closed.
-        """
-        if self.square_layer is not None:
-            QgsProject.instance().removeMapLayer(self.square_layer)
-            self.square_layer = None

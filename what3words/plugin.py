@@ -8,7 +8,7 @@ from qgis.core import Qgis, QgsApplication, QgsProject
 from qgis.gui import QgsMessageBar
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.utils import iface
 from qgiscommons2.gui import (addAboutMenu, addHelpMenu, removeAboutMenu,
                               removeHelpMenu)
@@ -41,20 +41,23 @@ class W3WTools(object):
         readSettings()
 
     def initGui(self):
+        
         # Add map tool button
-        mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.png"))
-        self.toolAction = QAction(mapToolIcon, "what3words map tool", self.iface.mainWindow())
-        self.toolAction.triggered.connect(self.setTool)
-        self.toolAction.setCheckable(True)
-        self.iface.addToolBarIcon(self.toolAction)
-        self.iface.addPluginToMenu("what3words", self.toolAction)
+        if not hasattr(self, 'toolAction'):
+            mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.png"))
+            self.toolAction = QAction(mapToolIcon, "what3words map tool", self.iface.mainWindow())
+            self.toolAction.triggered.connect(self.setTool)
+            self.toolAction.setCheckable(True)
+            self.iface.addToolBarIcon(self.toolAction)
+            self.iface.addPluginToMenu("what3words", self.toolAction)
 
         # Add zoom to what3words address button
-        zoomToIcon = QIcon(':/images/themes/default/mActionZoomIn.svg')
-        self.zoomToAction = QAction(zoomToIcon, "Zoom to what3words address", self.iface.mainWindow())
-        self.zoomToAction.triggered.connect(self.showW3WCoordInputDialog)
-        self.iface.addToolBarIcon(self.zoomToAction)
-        self.iface.addPluginToMenu("what3words", self.zoomToAction)
+        if not hasattr(self, 'zoomToAction'):
+            zoomToIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "zoom_to_w3w.svg"))
+            self.zoomToAction = QAction(zoomToIcon, "Zoom to what3words address", self.iface.mainWindow())
+            self.zoomToAction.triggered.connect(self.showW3WCoordInputDialog)
+            self.iface.addToolBarIcon(self.zoomToAction)
+            self.iface.addPluginToMenu("what3words", self.zoomToAction)
 
         # Add grid toggle button with dynamic text updates
         gridIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "grid-red.svg"))
@@ -121,8 +124,12 @@ class W3WTools(object):
         if apikey is None or apikey == "":
             self._showMessage('what3words API key is not set. Please set it and try again.', Qgis.Warning)
             return
+
         if self.mapTool is None:
+            # Initialize the W3W map tool only once
             self.mapTool = W3WMapTool(self.iface.mapCanvas())
+
+        # Set the tool to the map canvas and activate it
         self.toolAction.setChecked(True)
         self.iface.mapCanvas().setMapTool(self.mapTool)
 
@@ -147,9 +154,15 @@ class W3WTools(object):
         self.iface.removePluginMenu("what3words", self.gridToggleAction)
         
         self.iface.mapCanvas().unsetMapTool(self.mapTool)
-        self.iface.removeToolBarIcon(self.toolAction)
-        self.iface.removePluginMenu("what3words", self.toolAction)
-        self.iface.removePluginMenu("what3words", self.zoomToAction)
+        if hasattr(self, 'toolAction'):
+            self.iface.removeToolBarIcon(self.toolAction)
+            self.iface.removePluginMenu("what3words", self.toolAction)
+            del self.toolAction
+
+        if hasattr(self, 'zoomToAction'):
+            self.iface.removeToolBarIcon(self.zoomToAction)
+            self.iface.removePluginMenu("what3words", self.zoomToAction)
+            del self.zoomToAction
 
         self.iface.removeDockWidget(self.zoomToDialog)
 
@@ -176,3 +189,4 @@ class W3WTools(object):
     def _showMessage(self, message, level=Qgis.Info):
         iface.messageBar().pushMessage(
             message, level, iface.messageTimeout())
+
