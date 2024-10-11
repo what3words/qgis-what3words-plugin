@@ -15,9 +15,10 @@ from qgiscommons2.gui import (addAboutMenu, addHelpMenu, removeAboutMenu,
 from qgiscommons2.gui.settings import addSettingsMenu, removeSettingsMenu
 from qgiscommons2.settings import pluginSetting, readSettings
 
-from what3words.coorddialog import W3WCoordInputDialog  # Import the coord dialog
+from what3words.coorddialog import W3WCoordInputDialog 
 from what3words.maptool import W3WMapTool
 from what3words.grid import W3WGridManager
+from what3words.w3wfunctions import register_w3w_functions, unregister_w3w_functions 
 from what3words.processingprovider.w3wprovider import W3WProvider
 
 
@@ -25,10 +26,11 @@ class W3WTools(object):
 
     def __init__(self, iface):
         self.iface = iface
-        self.gridManager = None  # Initialize for grid management
+        self.gridManager = None  
         self.mapTool = None
         self.provider = W3WProvider()
-        self.zoomToDialog = None  # To manage the dialog window
+        self.zoomToDialog = None 
+        register_w3w_functions() 
         
         try:
             from qgistester.tests import addTestModule
@@ -169,6 +171,7 @@ class W3WTools(object):
         removeSettingsMenu("what3words")
         removeHelpMenu("what3words")
         removeAboutMenu("what3words")
+        unregister_w3w_functions()
 
         QgsApplication.processingRegistry().removeProvider(self.provider)
 
