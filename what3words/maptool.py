@@ -7,8 +7,8 @@ from qgis.PyQt.QtGui import QCursor
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
-from what3words.shared_layer import W3WSquareLayerManager
 from what3words.w3w import what3words
+from what3words.shared_layer_point import W3WPointLayerManager
 
 
 class W3WMapTool(QgsMapTool):
@@ -21,8 +21,8 @@ class W3WMapTool(QgsMapTool):
         self.setCursor(Qt.CrossCursor)
         apiKey = pluginSetting("apiKey")
         self.w3w = what3words(apikey=apiKey)
-        self.square_layer_manager = W3WSquareLayerManager.getInstance()  # Use singleton instance
-        
+        self.point_layer_manager = W3WPointLayerManager.getInstance()
+
     def toW3W(self, pt):
         """
         Converts the given point to a what3words address using the API.
@@ -35,37 +35,63 @@ class W3WMapTool(QgsMapTool):
         apiKey = pluginSetting("apiKey")
         addressLanguage = pluginSetting("addressLanguage")
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
-        
+
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+
+            # Get the 3-word address from coordinates
             w3w_info = self.w3w.convertTo3wa(pt4326.y(), pt4326.x())
+
+            # Log the API response for debugging
+            print("API Response:", w3w_info)
+
+            # Ensure both 'words' and 'coordinates' are in the response
+            if 'words' not in w3w_info or 'coordinates' not in w3w_info:
+                raise ValueError("Missing 'words' or 'coordinates' in API response")
+                
+            return w3w_info
+
+        except Exception as ex:
+            print(f"Error calling W3W API: {str(ex)}")
+            raise  # Re-raise the exception after logging it
         finally:
             QApplication.restoreOverrideCursor()
 
-        return w3w_info
 
     def canvasReleaseEvent(self, e):
         """
         Triggered when the user clicks on the map. This will convert the clicked point
-        to a what3words address and display it to the user, as well as drawing the square.
+        to a what3words address and display it to the user, as well as drawing the point.
         """
         pt = self.toMapCoordinates(e.pos())
-        w3w_info = self.toW3W(pt)
-        if w3w_info:
+
+        try:
+            w3w_info = self.toW3W(pt)
+
+            # Check for valid 'words' and 'coordinates' in the API response
+            if 'words' not in w3w_info or 'coordinates' not in w3w_info:
+                iface.messageBar().pushMessage(
+                    "what3words", 
+                    "Invalid W3W data: Missing coordinates or words", 
+                    level=Qgis.Warning, duration=5
+                )
+                return
+
+            # Display the what3words address and copy it to the clipboard
             iface.messageBar().pushMessage(
                 "what3words", 
-                "The what3words address: '{}' has been copied to the clipboard".format(w3w_info['words']), 
+                f"The what3words address: '{w3w_info['words']}' has been copied to the clipboard", 
                 level=Qgis.Info, duration=6
             )
             clipboard = QApplication.clipboard()
             clipboard.setText(w3w_info['words'])
 
-            # Add the W3W square to the shared layer
-            self.square_layer_manager.addSquareFeature(w3w_info)
-        else:
+            # Add the W3W point to the shared layer
+            self.point_layer_manager.addPointFeature(w3w_info)
+
+        except Exception as ex:
             iface.messageBar().pushMessage(
                 "what3words", 
-                "Could not convert the selected point to a what3words address",
-                level=Qgis.Warning, duration=3
+                f"Error processing W3W point: {str(ex)}", 
+                level=Qgis.Warning, duration=5
             )
-

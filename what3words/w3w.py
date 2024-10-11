@@ -78,7 +78,7 @@ class what3words(object):
         :param lng: Longitude to convert
         :param format: The response format (default is 'json')
         :param language: The language for the what3words address (optional)
-        :return: The square and what3words address
+        :return: The square, what3words address, and coordinates
         """
         coords = "%s,%s" % (lat, lng)
         params = {'coordinates': coords, 'format': format, 'language': language or self.addressLanguage}
@@ -90,7 +90,8 @@ class what3words(object):
                 'square': response_json['square'],
                 'words': response_json['words'],
                 'nearestPlace': response_json.get('nearestPlace', ''),
-                'country': response_json.get('country', '')
+                'country': response_json.get('country', ''),
+                'coordinates': response_json['coordinates']  # Add coordinates for point
             }
         else:
             error_message = response_json.get('error', 'Failed to retrieve the coordinates for what3words address')

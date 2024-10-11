@@ -1,14 +1,13 @@
 from builtins import str
 import os
-from PyQt5.QtWidgets import (QLineEdit, QDockWidget, QHBoxLayout, QVBoxLayout, QPushButton,
+from PyQt5.QtWidgets import (QLineEdit, QDockWidget, QHBoxLayout, QVBoxLayout,
                              QListWidget, QListWidgetItem, QWidget, QCheckBox, QApplication)
 from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject)
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QCursor, QPalette
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
-from what3words.shared_layer import W3WSquareLayerManager
-
+from what3words.shared_layer_point import W3WPointLayerManager
 from what3words.w3w import what3words
 
 class W3WCoordInputDialog(QDockWidget):
@@ -17,7 +16,7 @@ class W3WCoordInputDialog(QDockWidget):
         self.zoom_level = 19  # Default zoom level
         QDockWidget.__init__(self, parent)
         self.setAllowedAreas(Qt.TopDockWidgetArea)
-        self.square_layer_manager = W3WSquareLayerManager.getInstance()  # Use singleton instance
+        self.point_layer_manager = W3WPointLayerManager.getInstance()  # Use the shared point layer
         self.initGui()
 
     def setApiKey(self, apikey):
@@ -37,11 +36,6 @@ class W3WCoordInputDialog(QDockWidget):
         self.suggestionsList = QListWidget()
         self.suggestionsList.setVisible(False)  # Hide the list until we have suggestions
         self.suggestionsList.itemClicked.connect(self.onSuggestionSelected)  # Handle suggestion click
-
-        # Button to display W3W square
-        self.showSquareButton = QPushButton("Zoom To")
-        self.showSquareButton.setEnabled(False)  # Initially disabled
-        self.showSquareButton.clicked.connect(self.showW3WSquare)
 
         # Checkbox for enabling bounding box
         self.boundingBoxCheckbox = QCheckBox("Use Bounding Box")
@@ -82,7 +76,6 @@ class W3WCoordInputDialog(QDockWidget):
         Trigger suggestions after at least the first letter of the 3rd word is entered.
         If the bounding box checkbox is checked, clip the suggestions to the map view.
         """
-
         self.suggestionsList.clear()  # Clear previous suggestions
         self.suggestionsList.setVisible(False)  # Hide the list initially
 
@@ -170,11 +163,11 @@ class W3WCoordInputDialog(QDockWidget):
         selected_text = item.text()  # Get the selected what3words address
         self.coordBox.setText(selected_text.split(',')[0].replace("///", ""))  # Update the input box with the selected address
         self.suggestionsList.setVisible(False)  # Hide the suggestions list
-        self.showW3WSquare()
+        self.showW3WPoint()
 
-    def showW3WSquare(self, selected_text=None):
+    def showW3WPoint(self, selected_text=None):
         """
-        Show the W3W square on the map when a suggestion is selected.
+        Show the W3W point on the map when a suggestion is selected.
         """
         apiKey = pluginSetting("apiKey")
         addressLanguage = pluginSetting("addressLanguage")
@@ -187,13 +180,13 @@ class W3WCoordInputDialog(QDockWidget):
             else:
                 w3wCoord = str(selected_text).replace(" ", "")
 
-            # Make the API call to get the what3words square
+            # Make the API call to get the what3words point
             response_json = self.w3w.convertToCoordinates(w3wCoord)
 
-            # Add the W3W square to the shared layer
-            self.square_layer_manager.addSquareFeature(response_json)
+            # Add the W3W point to the shared layer
+            self.point_layer_manager.addPointFeature(response_json)
 
-            # Zoom to the center point of the square
+            # Zoom to the point location
             lat = float(response_json["coordinates"]["lat"])
             lon = float(response_json["coordinates"]["lng"])
             canvasCrs = self.canvas.mapSettings().destinationCrs()

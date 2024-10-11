@@ -46,7 +46,7 @@ class W3WTools(object):
         
         # Add map tool button
         if not hasattr(self, 'toolAction'):
-            mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.png"))
+            mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w_marker.svg"))
             self.toolAction = QAction(mapToolIcon, "what3words map tool", self.iface.mainWindow())
             self.toolAction.triggered.connect(self.setTool)
             self.toolAction.setCheckable(True)
@@ -55,14 +55,14 @@ class W3WTools(object):
 
         # Add zoom to what3words address button
         if not hasattr(self, 'zoomToAction'):
-            zoomToIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "zoom_to_w3w.svg"))
+            zoomToIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w_search.svg"))
             self.zoomToAction = QAction(zoomToIcon, "Zoom to what3words address", self.iface.mainWindow())
             self.zoomToAction.triggered.connect(self.showW3WCoordInputDialog)
             self.iface.addToolBarIcon(self.zoomToAction)
             self.iface.addPluginToMenu("what3words", self.zoomToAction)
 
         # Add grid toggle button with dynamic text updates
-        gridIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "grid-red.svg"))
+        gridIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "grid_red.svg"))
         self.gridToggleAction = QAction(gridIcon, "View Grid", self.iface.mainWindow())
         self.gridToggleAction.setCheckable(True)
         self.gridToggleAction.toggled.connect(self.toggleGrid)
