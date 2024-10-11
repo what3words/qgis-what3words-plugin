@@ -38,14 +38,11 @@ class W3WMapTool(QgsMapTool):
 
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
-
-            # Get the 3-word address from coordinates
             w3w_info = self.w3w.convertTo3wa(pt4326.y(), pt4326.x())
 
-            # Log the API response for debugging
-            print("API Response:", w3w_info)
+            # Log or print the API response for debugging
+            # print("API Response:", w3w_info)
 
-            # Ensure both 'words' and 'coordinates' are in the response
             if 'words' not in w3w_info or 'coordinates' not in w3w_info:
                 raise ValueError("Missing 'words' or 'coordinates' in API response")
                 
@@ -64,12 +61,11 @@ class W3WMapTool(QgsMapTool):
         to a what3words address and display it to the user, as well as drawing the point.
         """
         pt = self.toMapCoordinates(e.pos())
-
         try:
             w3w_info = self.toW3W(pt)
 
-            # Check for valid 'words' and 'coordinates' in the API response
-            if 'words' not in w3w_info or 'coordinates' not in w3w_info:
+            # Check if 'coordinates' and 'words' exist in the response
+            if not w3w_info or 'coordinates' not in w3w_info or 'words' not in w3w_info:
                 iface.messageBar().pushMessage(
                     "what3words", 
                     "Invalid W3W data: Missing coordinates or words", 
@@ -77,7 +73,7 @@ class W3WMapTool(QgsMapTool):
                 )
                 return
 
-            # Display the what3words address and copy it to the clipboard
+            # If valid, add the W3W point to the shared layer
             iface.messageBar().pushMessage(
                 "what3words", 
                 f"The what3words address: '{w3w_info['words']}' has been copied to the clipboard", 
