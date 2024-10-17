@@ -232,7 +232,7 @@ class W3WGridManager:
         # Check if the layer exists in the project
         if not self.grid_layer or not QgsProject.instance().mapLayersByName(self.grid_layer.name()):
             # The layer doesn't exist anymore or was deleted, recreate it
-            self.grid_layer = QgsVectorLayer("LineString", "W3W Grid", "memory")
+            self.grid_layer = QgsVectorLayer("LineString", "what3words Grid", "memory")
             
             # Define the attributes for the grid layer
             pr = self.grid_layer.dataProvider()
@@ -250,7 +250,7 @@ class W3WGridManager:
             layers = QgsProject.instance().mapLayersByName(self.grid_layer.name())
             if not layers:
                 # Recreate the layer if it's not valid anymore
-                self.grid_layer = QgsVectorLayer("LineString", "W3W Grid", "memory")
+                self.grid_layer = QgsVectorLayer("LineString", "what3words Grid", "memory")
                 QgsProject.instance().addMapLayer(self.grid_layer)
 
 
@@ -272,7 +272,7 @@ class W3WGridManager:
 
     def applyGridSymbology(self):
         """
-        Applies symbology to the W3W grid layer based on whether a satellite or vector map is active.
+        Applies symbology to the what3words grid layer based on whether a satellite or vector map is active.
         """
         satellite_keywords = ['satellite', 'google satellite', 'imagery', 'arcgis satellite', 'bing aerial', 'google satellite']
         is_satellite_map = False

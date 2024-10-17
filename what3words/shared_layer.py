@@ -29,7 +29,8 @@ class W3WSquareLayerManager:
                 QgsField("lat", QVariant.Double),
                 QgsField("lng", QVariant.Double),
                 QgsField("nearestPlace", QVariant.String),
-                QgsField("country", QVariant.String)
+                QgsField("country", QVariant.String),
+                QgsField("language", QVariant.String)
             ])
             self.square_layer.updateFields()
 
@@ -104,7 +105,8 @@ class W3WSquareLayerManager:
             coordinates['lat'],
             coordinates['lng'],
             square_data.get('nearestPlace', ''),
-            square_data.get('country', '')
+            square_data.get('country', ''),
+            square_data.get('language', '')
         ])
 
         # Add the feature and refresh the layer

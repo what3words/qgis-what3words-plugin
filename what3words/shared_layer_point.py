@@ -23,7 +23,7 @@ class W3WPointLayerManager:
         """
         if self.point_layer is None:
             # Create the memory layer for W3W points
-            self.point_layer = QgsVectorLayer("Point?crs=EPSG:4326", "W3W Points", "memory")
+            self.point_layer = QgsVectorLayer("Point?crs=EPSG:4326", "what3words Points", "memory")
             provider = self.point_layer.dataProvider()
 
             # Add attributes for the W3W point
@@ -32,12 +32,13 @@ class W3WPointLayerManager:
                 QgsField("lat", QVariant.Double),
                 QgsField("lng", QVariant.Double),
                 QgsField("nearestPlace", QVariant.String),
-                QgsField("country", QVariant.String)
+                QgsField("country", QVariant.String),
+                QgsField("language", QVariant.String)
             ])
             self.point_layer.updateFields()
 
             # Apply SVG marker style
-            svg_path = os.path.join(os.path.dirname(__file__), "icons", "w3w.svg")
+            svg_path = os.path.join(os.path.dirname(__file__), "icons", "w3w_circle.svg")
             if os.path.exists(svg_path):
                 svg_layer = QgsSvgMarkerSymbolLayer(svg_path)
                 
@@ -46,16 +47,16 @@ class W3WPointLayerManager:
                 svg_layer.setSize(default_size)
 
                 # Set the size dynamically based on the zoom level
-                zoom_level_expression = """
-                    case
-                    when @map_scale >= 2000 then {default_size}  -- Keep the default size if scale is above 2000
-                    else 19 * (500 / @map_scale)  -- Dynamically scale for zoom levels lower than 2000
-                    end
-                    """.format(default_size=default_size)                
-                size_property = QgsProperty.fromExpression(zoom_level_expression)
+                # zoom_level_expression = """
+                #     case
+                #     when @map_scale >= 2000 then {default_size}  -- Keep the default size if scale is above 2000
+                #     else 8 * (500 / @map_scale)  -- Dynamically scale for zoom levels lower than 2000
+                #     end
+                #     """.format(default_size=default_size)                
+                # size_property = QgsProperty.fromExpression(zoom_level_expression)
 
-                # Apply the data-defined size property
-                svg_layer.setDataDefinedProperty(QgsSymbolLayer.PropertySize, size_property)
+                # # Apply the data-defined size property
+                # svg_layer.setDataDefinedProperty(QgsSymbolLayer.PropertySize, size_property)
 
                 # Create a marker symbol and set the SVG layer
                 symbol = QgsMarkerSymbol()
@@ -83,15 +84,16 @@ class W3WPointLayerManager:
                 return True
         return False
 
-    def addPointFeature(self, point_data):
+    def addPointFeature(self, point_data, clicked_point=None):
         """
         Adds a W3W point feature to the layer, but first checks for duplicates.
+        Uses `clicked_point` if provided, otherwise uses W3W API coordinates.
         """
-        # Ensure both 'coordinates' and 'words' are present in the response
-        if 'coordinates' not in point_data or 'words' not in point_data:
+        # Ensure 'words' is present in the response
+        if 'words' not in point_data:
             iface.messageBar().pushMessage(
                 "what3words", 
-                "Invalid W3W data: Missing coordinates or words", 
+                "Invalid what3words data: Missing words", 
                 level=Qgis.Warning, duration=5
             )
             return
@@ -102,17 +104,21 @@ class W3WPointLayerManager:
         if self.checkForDuplicate(w3w_address):
             iface.messageBar().pushMessage(
                 "what3words", 
-                f"Duplicate W3W point: '{w3w_address}' already exists in the layer.", 
+                f"Duplicate what3words point: '{w3w_address}' already exists in the layer.", 
                 level=Qgis.Warning, duration=5
             )
             return  # Do not add a duplicate
 
-        # Use the exact coordinates from the API response
-        coordinates = point_data['coordinates']
-        lat = coordinates['lat']
-        lng = coordinates['lng']
+        # Use clicked point's geometry if provided, otherwise use API coordinates
+        if clicked_point:
+            lat = clicked_point.y()
+            lng = clicked_point.x()
+        else:
+            coordinates = point_data['coordinates']
+            lat = coordinates['lat']
+            lng = coordinates['lng']
 
-       # Create the point geometry using exact coordinates
+        # Create the point geometry
         point = QgsPointXY(lng, lat)
 
         # Ensure the point layer exists
@@ -125,10 +131,11 @@ class W3WPointLayerManager:
         # Set attributes for the W3W point
         feature.setAttributes([
             w3w_address,
-            coordinates['lat'],
-            coordinates['lng'],
+            lat,  # Use the lat from clicked_point or W3W API
+            lng,  # Use the lng from clicked_point or W3W API
             point_data.get('nearestPlace', ''),
-            point_data.get('country', '')
+            point_data.get('country', ''),
+            point_data.get('language', '')
         ])
 
         # Add the feature to the layer
@@ -138,4 +145,3 @@ class W3WPointLayerManager:
         
         # Notify user of successful addition
         iface.messageBar().pushMessage("what3words", f"Point added for '{w3w_address}'", level=Qgis.Success, duration=5)
-

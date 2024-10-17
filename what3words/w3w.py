@@ -64,7 +64,8 @@ class what3words(object):
                 'coordinates': response_json['coordinates'],
                 'nearestPlace': response_json.get('nearestPlace', ''),
                 'words': response_json.get('words', ''),
-                'country': response_json.get('country', '')
+                'country': response_json.get('country', ''),
+                'language': response_json.get('language', '')
             }
         else:
             error_message = response_json.get('error', 'Failed to retrieve the what3words address square')
@@ -91,7 +92,8 @@ class what3words(object):
                 'words': response_json['words'],
                 'nearestPlace': response_json.get('nearestPlace', ''),
                 'country': response_json.get('country', ''),
-                'coordinates': response_json['coordinates']  # Add coordinates for point
+                'language': response_json.get('language', ''),
+                'coordinates': response_json['coordinates'] 
             }
         else:
             error_message = response_json.get('error', 'Failed to retrieve the coordinates for what3words address')

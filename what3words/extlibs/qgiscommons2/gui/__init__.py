@@ -1,9 +1,11 @@
 from qgiscommons2.utils import _callerName, _callerPath, pluginDetails
 from qgiscommons2.settings import pluginSetting, setPluginSetting
-from qgis.PyQt import QtGui, QtCore, uic, QtWidgets
-from qgis.core import *
+from qgis.PyQt import QtCore, uic, QtWidgets
+from qgis.core import QgsApplication,QgsMessageOutput, Qgis
 from qgis.gui import QgsMessageBar
 from qgis.utils import iface
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction, QMessageBox
 import inspect
 import os
 import webbrowser
@@ -21,9 +23,10 @@ def addHelpMenu(menuName, parentMenuFunction=None):
     namespace = _callerName().split(".")[0]
     path = "file://{}".format(os.path.join(os.path.dirname(_callerPath()), "docs",  "html", "index.html"))
     helpAction = QtWidgets.QAction(
-        QgsApplication.getThemeIcon('/mActionHelpAPI.png'),
-        "Plugin help...",
+        QgsApplication.getThemeIcon('/mIconInfo.svg'),
+        "Help",
         iface.mainWindow())
+        
     helpAction.setObjectName(namespace + "help")
     helpAction.triggered.connect(lambda: openHelp(path))
     parentMenuFunction(menuName, helpAction)
@@ -58,7 +61,7 @@ def addAboutMenu(menuName, parentMenuFunction=None):
     namespace = _callerName().split(".")[0]
     aboutAction = QtWidgets.QAction(
         QgsApplication.getThemeIcon('/mActionHelpContents.svg'),
-        "About...",
+        "About",
         iface.mainWindow())
     aboutAction.setObjectName(namespace + "about")
     aboutAction.triggered.connect(lambda: openAboutDialog(namespace))

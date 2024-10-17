@@ -106,7 +106,7 @@ class W3WCoordInputDialog(QDockWidget):
             # Ensure we have suggestions in the response
             if 'suggestions' in suggestions and len(suggestions['suggestions']) > 0:
                 for suggestion in suggestions['suggestions']:
-                    item_text = f"///{suggestion['words']}, {suggestion['nearestPlace']}, {suggestion['country']}"
+                    item_text = f"///{suggestion['words']}, {suggestion['nearestPlace']}"
                     item = QListWidgetItem(item_text)
                     self.suggestionsList.addItem(item)
 

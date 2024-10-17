@@ -53,3 +53,10 @@ Remove tkinter library
     
     Fix a bug on installing the widget on QGIS windows
 
+*2024 (v4.4)*
+Redesign the plugin
+    
+    Add a grid view
+    Updade the zoom to what3words 
+    Update the map tool 
+    Add the AutoSuggest component
