@@ -1,10 +1,12 @@
 from builtins import str
 import os
-from PyQt5.QtWidgets import (QLineEdit, QDockWidget, QHBoxLayout, QVBoxLayout,
+from PyQt5.QtWidgets import (QLineEdit, QDockWidget, QHBoxLayout, QVBoxLayout, QPushButton,
                              QListWidget, QListWidgetItem, QWidget, QCheckBox, QApplication, QSizePolicy)
-from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject)
+from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsPointXY)
+from qgis.gui import QgsMapCanvasAnnotationItem, QgsVertexMarker
+from PyQt5.QtGui import QPixmap
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QCursor, QPalette
+from qgis.PyQt.QtGui import QPalette
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
 from what3words.shared_layer_point import W3WPointLayerManager
@@ -16,7 +18,8 @@ class W3WCoordInputDialog(QDockWidget):
         self.zoom_level = 19  # Default zoom level
         QDockWidget.__init__(self, parent)
         self.setAllowedAreas(Qt.TopDockWidgetArea)
-        self.point_layer_manager = W3WPointLayerManager.getInstance()  # Use the shared point layer
+        self.point_layer_manager = W3WPointLayerManager.getInstance()
+        self.temp_marker = None 
         self.initGui()
 
     def setApiKey(self, apikey):
@@ -37,29 +40,61 @@ class W3WCoordInputDialog(QDockWidget):
         self.suggestionsList.setVisible(False)  # Hide the list until we have suggestions
         self.suggestionsList.itemClicked.connect(self.onSuggestionSelected)  # Handle suggestion click
 
-        # Checkbox for enabling bounding box
-        self.boundingBoxCheckbox = QCheckBox("Use Bounding Box")
+         # Checkboxes and Clear Marker button
+        self.boundingBoxCheckbox = QCheckBox("Clip to Extent")
+        self.storeInLayerCheckbox = QCheckBox("Save to Layer")
+        self.storeInLayerCheckbox.stateChanged.connect(self.handleSaveToLayer)
+        self.clearMarkerButton = QPushButton("Clear Marker")  
+        self.clearMarkerButton.clicked.connect(self.clearMarker)  
 
         # Layout setup
         hlayout = QHBoxLayout()
         hlayout.addWidget(self.coordBox)
-        hlayout.addWidget(self.boundingBoxCheckbox)  # Align checkbox next to input field
+        hlayout.addWidget(self.boundingBoxCheckbox)
+        hlayout.addWidget(self.storeInLayerCheckbox)
+        hlayout.addWidget(self.clearMarkerButton)
 
-        # Vertical layout to place suggestions below input field
         vlayout = QVBoxLayout()
         vlayout.addLayout(hlayout)
         vlayout.addWidget(self.suggestionsList)
 
-        # Set the widget layout
         dockWidgetContents = QWidget()
         dockWidgetContents.setLayout(vlayout)
         self.setWidget(dockWidgetContents)
 
-        # Connect the text change event to fetch suggestions
+        # Connect text change to suggestions
         self.coordBox.textChanged.connect(self.suggestW3W)
 
         # Handle dark mode
         self.handleDarkMode()
+
+    def handleSaveToLayer(self, state):
+        """
+        Saves the current address to the layer if the checkbox is checked
+        and there is a valid W3W address in the input field.
+        """
+        if state == Qt.Checked:
+            # Check for a valid W3W address in the input field
+            address = self.coordBox.text().strip()
+            if self.w3w.is_possible_3wa(address):
+                self.saveToLayer(address)
+
+    def saveToLayer(self, w3w_address):
+        """
+        Converts the W3W address to coordinates and saves to layer.
+        """
+        try:
+            # Convert address to coordinates and add to the layer
+            response_json = self.w3w.convertToCoordinates(w3w_address)
+            self.point_layer_manager.addPointFeature(response_json)
+
+            # Clear any temporary marker from the canvas
+            self.clearMarker()
+
+            iface.messageBar().pushMessage("what3words", f"Address '{w3w_address}' saved to layer.", level=Qgis.Success, duration=3)
+
+        except Exception as e:
+            iface.messageBar().pushMessage("what3words", f"Error saving to layer: {str(e)}", level=Qgis.Warning, duration=5)
 
     def handleDarkMode(self):
         """
@@ -164,27 +199,31 @@ class W3WCoordInputDialog(QDockWidget):
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
 
         try:
-            # Get the selected what3words address
             if selected_text is None:
                 w3wCoord = str(self.coordBox.text()).replace(" ", "")
             else:
                 w3wCoord = str(selected_text).replace(" ", "")
-
-            # Make the API call to get the what3words point
+            
             response_json = self.w3w.convertToCoordinates(w3wCoord)
-
-            # Add the W3W point to the shared layer
-            self.point_layer_manager.addPointFeature(response_json)
+            lat = float(response_json["coordinates"]["lat"])
+            lng = float(response_json["coordinates"]["lng"])
 
             # Zoom to the point location
-            lat = float(response_json["coordinates"]["lat"])
-            lon = float(response_json["coordinates"]["lng"])
             canvasCrs = self.canvas.mapSettings().destinationCrs()
             epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
             transform4326 = QgsCoordinateTransform(epsg4326, canvasCrs, QgsProject.instance())
-            center = transform4326.transform(lon, lat)
+            center = transform4326.transform(lng, lat)
+
+            # If 'Save to Layer' is checked, add to the layer
+            if self.storeInLayerCheckbox.isChecked():
+                self.point_layer_manager.addPointFeature(response_json)
+            else:
+                # Clear previous marker if it exists and display the temp marker
+                self.clearMarker()
+                self.addTemporaryMarker(center)
+
             self.canvas.setCenter(center)
-            self.canvas.zoomScale(591657550.5 / (2 ** self.zoom_level))  # Adjust the zoom level
+            self.canvas.zoomScale(591657550.5 / (2 ** self.zoom_level))
             self.canvas.refresh()
 
         except KeyError as e:
@@ -193,3 +232,22 @@ class W3WCoordInputDialog(QDockWidget):
             iface.messageBar().pushMessage("what3words", f"Error: {str(e)}", level=Qgis.Warning, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
+
+    def addTemporaryMarker(self, center):
+        """Adds a temporary marker to the map at the specified latitude and longitude."""
+        if self.temp_marker is None:
+            self.temp_marker = QgsVertexMarker(self.canvas)
+            self.temp_marker.setColor(Qt.red)
+            self.temp_marker.setIconSize(8)
+            self.temp_marker.setPenWidth(3)
+        
+        self.temp_marker.setCenter(center)
+        self.temp_marker.show()
+
+    def clearMarker(self):
+        """Clears the temporary marker if it exists."""
+        if self.temp_marker:
+            self.temp_marker.hide()
+            self.canvas.scene().removeItem(self.temp_marker)
+            self.temp_marker = None
+            print("Temporary marker cleared from canvas.")

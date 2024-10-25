@@ -69,18 +69,19 @@ class W3WPointLayerManager:
             # Add the layer to the project
             QgsProject.instance().addMapLayer(self.point_layer)
 
-    def checkForDuplicate(self, w3w_address):
+    def checkForDuplicate(self, lat, lng):
         """
-        Checks if the given w3w_address already exists in the layer.
-        :param w3w_address: The what3words address to check for duplicates.
-        :return: True if the address exists, False otherwise.
+        Checks if a point with the same coordinates already exists in the layer.
+        :param lat: Latitude of the point.
+        :param lng: Longitude of the point.
+        :return: True if the coordinates already exist, False otherwise.
         """
         if not self.point_layer:
             return False
 
-        # Check each feature in the layer to see if the w3w_address already exists
+        # Check each feature in the layer to see if the coordinates already exist
         for feature in self.point_layer.getFeatures():
-            if feature['w3w_address'] == w3w_address:
+            if feature['lat'] == lat and feature['lng'] == lng:
                 return True
         return False
 
@@ -100,15 +101,6 @@ class W3WPointLayerManager:
 
         w3w_address = point_data['words']
 
-        # Check for duplicates before adding
-        if self.checkForDuplicate(w3w_address):
-            iface.messageBar().pushMessage(
-                "what3words", 
-                f"Duplicate what3words point: '{w3w_address}' already exists in the layer.", 
-                level=Qgis.Warning, duration=5
-            )
-            return  # Do not add a duplicate
-
         # Use clicked point's geometry if provided, otherwise use API coordinates
         if clicked_point:
             lat = clicked_point.y()
@@ -117,6 +109,16 @@ class W3WPointLayerManager:
             coordinates = point_data['coordinates']
             lat = coordinates['lat']
             lng = coordinates['lng']
+
+        # Check for duplicates before adding
+        if self.checkForDuplicate(lat, lng):
+            iface.messageBar().pushMessage(
+                "what3words", 
+                f"Duplicate coordinates detected. The point with these coordinates already exists.", 
+                level=Qgis.Warning, duration=5
+            )
+            return  # Do not add a duplicate with the same coordinates
+
 
         # Create the point geometry
         point = QgsPointXY(lng, lat)
