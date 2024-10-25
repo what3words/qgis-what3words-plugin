@@ -12,5 +12,12 @@
      "type": "string",
      "default": "EN",
      "group": "General"
+    },
+    {"name": "apiBaseUrl",
+    "label": "API Base URL",
+    "description": "URL for the what3words API (e.g., https://api.what3words.com for live server, or your local server URL)",
+    "type": "string",
+    "default": "https://api.what3words.com",
+    "group": "General"
     }
 ]

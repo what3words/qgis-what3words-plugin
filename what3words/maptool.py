@@ -48,7 +48,7 @@ class W3WMapTool(QgsMapTool):
 
         except GeoCodeException as e:
             # Directly use the error message provided by GeoCodeException
-            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Critical, duration=5)
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -83,9 +83,6 @@ class W3WMapTool(QgsMapTool):
             clipboard = QApplication.clipboard()
             clipboard.setText(w3w_info['words'])
 
-        except Exception as ex:
-            iface.messageBar().pushMessage(
-                "what3words", 
-                f"Error processing what3words point: {str(ex)}", 
-                level=Qgis.Warning, duration=5
-            )
+        except GeoCodeException as e:
+            # Directly use the error message provided by GeoCodeException
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=5)

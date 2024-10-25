@@ -61,3 +61,4 @@ Redesign the plugin
     Update the map tool 
     Add the AutoSuggest component
     Add what3words Tools functions within Fields Calculator
+    Allow to use other API base URL

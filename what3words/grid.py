@@ -174,7 +174,7 @@ class W3WGridManager:
 
         except GeoCodeException as e:
             # Directly use the error message provided by GeoCodeException
-            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Critical, duration=5)
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
 
