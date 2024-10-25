@@ -23,9 +23,10 @@ class W3WGridManager:
         self.canvas = canvas
         apiKey = pluginSetting("apiKey")
         self.w3w = what3words(apikey=apiKey)
-        self.grid_layer = None  # Store reference to the grid layer
-        self.grid_enabled = False  # Track whether grid is enabled
+        self.grid_layer = None 
+        self.grid_enabled = False  
         self.geojson_path = os.path.join(os.path.dirname(__file__), "w3w_grid.geojson")
+        self.last_grid_extent = None  # Track last fetched grid extent
 
     def enableGrid(self, enable=True):
         """
@@ -73,7 +74,6 @@ class W3WGridManager:
                     "Error: The grid layer has been deleted. Please reload the plugin to restore the grid.",
                     level=Qgis.Critical, duration=5)
 
-
     def saveGridToFile(self):
         """
         Exports the grid layer to a GeoJSON file if the user chooses to save the grid.
@@ -94,7 +94,6 @@ class W3WGridManager:
         else:
             iface.messageBar().pushMessage("Grid", "Save operation canceled.", level=Qgis.Warning)
 
-
     def fetchAndDrawW3WGrid(self):
         """
         Fetches the What3words grid for the current map extent and draws it on the map.
@@ -111,7 +110,14 @@ class W3WGridManager:
                 "Zoom level must be between 17 and 25 to display the grid.", 
                 level=Qgis.Warning, duration=3)
             return
-
+        
+        # Create an extent object to compare with the previous fetched extent
+        current_extent = (extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum())
+        
+        # Skip API call if the current extent matches the last grid extent
+        if self.last_grid_extent == current_extent:
+            return
+            
         # Get the map canvas CRS (which might not be WGS84)
         canvasCrs = self.canvas.mapSettings().destinationCrs()
 
@@ -129,6 +135,14 @@ class W3WGridManager:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
             grid_data = self.w3w.getGridSection(bounding_box)
 
+            # Check if the API response contains an error
+            if 'error' in grid_data:
+                error_code = grid_data['error']['code']
+                error_message = grid_data['error']['message']
+                iface.messageBar().pushMessage("what3words Error", 
+                    f"Error fetching grid: {error_code} - {error_message}", level=Qgis.Warning, duration=5)
+                return
+            
             # Ensure that the grid layer exists
             self.ensureGridLayer()
 
@@ -144,26 +158,25 @@ class W3WGridManager:
             for line in grid_data['lines']:
                 point1 = QgsPoint(line['start']['lng'], line['start']['lat'])
                 point2 = QgsPoint(line['end']['lng'], line['end']['lat'])
-                
+
                 feature = QgsFeature()
                 feature.setGeometry(QgsGeometry.fromPolyline([point1, point2]))
-
                 # Set the south, west, north, and east attributes based on the bounding box
                 feature.setAttributes([bottom_left.y(), bottom_left.x(), top_right.y(), top_right.x()])
-                
                 # Add the feature to the data provider
                 pr.addFeature(feature)
 
             # Update the layer's extents and trigger a repaint
             self.grid_layer.updateExtents()
             self.applyGridSymbology()
+            # Update last fetched extent
+            self.last_grid_extent = current_extent
 
         except Exception as e:
             iface.messageBar().pushMessage("what3words", 
                 f"Error fetching grid: {str(e)}", level=Qgis.Critical, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
-
 
     def saveGridToLayer(self, grid_data, bottom_left, top_right):
         """
@@ -252,7 +265,6 @@ class W3WGridManager:
                 # Recreate the layer if it's not valid anymore
                 self.grid_layer = QgsVectorLayer("LineString", "what3words Grid", "memory")
                 QgsProject.instance().addMapLayer(self.grid_layer)
-
 
     def removeGridLayer(self):
         """

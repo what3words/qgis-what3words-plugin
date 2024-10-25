@@ -43,7 +43,7 @@ def convert_to_coord(values, feature, parent):
     Convert a what3words address to latitude and longitude
 
     <h4>Syntax</h4>
-    <p><code>convert_to_coord(w3w_address[, order='yx', delimiter=', ', crs='EPSG:4326', return_type='separate'])</code></p>
+    <p><b>convert_to_coord(w3w_address[, order='yx', delimiter=', ', crs='EPSG:4326', return_type='separate'])</b></p>
 
     <h4>Arguments:</h4>
     <ul>
@@ -141,6 +141,146 @@ def convert_to_3wa(values, feature, parent):
         return None
 
 
+@qgsfunction(-1, group="what3words Tools")
+def change_w3w_language(values, feature, parent):
+    """
+    Change the language of a what3words address.
+
+    <h4>Syntax</h4>
+    <p><b>change_w3w_language( w3w_address, target_language )</b></p>
+
+    <h4>Arguments</h4>
+    <p><i>w3w_address</i> &rarr; The original what3words address (e.g., 'filled.count.soap').</p>
+    <p><i>target_language</i> &rarr; The 2-letter ISO code for the target language (e.g., 'es' for Spanish).</p>
+
+    <h4>Output</h4>
+    <p>This function returns the 3-word what3words address in the specified language.</p>
+
+    <h4>Example usage</h4>
+    <ul>
+      <li><b>change_w3w_language( 'filled.count.soap', 'es' )</b> &rarr; ///caja.contar.jabón</li>
+      <li><b>change_w3w_language( 'caja.contar.jabón', 'en' )</b> &rarr; ///filled.count.soap</li>
+    </ul>
+
+    <p>If you encounter errors, ensure the API key is valid and the input what3words address is correct.</p>
+    """
+    try:
+        # Ensure both the w3w address and target language are provided
+        if len(values) < 2:
+            parent.setEvalErrorString("Error: what3words address and target language must be provided.")
+            return
+
+        w3w_address = values[0]
+        target_language = values[1]  # Target language code (e.g., 'es', 'fr')
+
+        # Get the what3words API key from settings
+        w3w = get_w3w_api()
+
+        # Step 1: Convert the original w3w address back to coordinates
+        result = w3w.convertToCoordinates(w3w_address)
+        lat = result['coordinates']['lat']
+        lon = result['coordinates']['lng']
+
+        # Step 2: Convert the coordinates back to a what3words address in the target language
+        translated_result = w3w.convertTo3wa(lat, lon, language=target_language)
+        return translated_result['words']
+
+    except Exception as e:
+        parent.setEvalErrorString(f"Error changing language: {str(e)}")
+        return None
+
+
+@qgsfunction(-1, group=group_name)
+def autosuggest_w3w(values, feature, parent):
+    """
+    Get autosuggestions for an incomplete what3words address, allowing additional options for country, focus, bounding box, circle, and polygon.
+
+    <h4>Syntax</h4>
+    <p><b>autosuggest_w3w</b>(<i>w3w_address, rank[, country, bbox, circle, polygon, focus]</i>)</p>
+
+    <h4>Arguments</h4>
+    <p><i>w3w_address</i> &rarr; the incomplete what3words address to get suggestions for (e.g., 'filled.count.so').</p>
+    <p><i>rank</i> &rarr; the rank of the desired suggestion (e.g., 1 for the top suggestion).</p>
+
+    <p><i>country</i> &rarr; (optional) restrict results to a specific country using the ISO 3166-1 alpha-2 country code (e.g., 'GB').</p>
+    <p><i>bbox</i> &rarr; (optional) restrict results to within a bounding box, format 'south_lat,west_lng,north_lat,east_lng'.</p>
+    <p><i>circle</i> &rarr; (optional) restrict results to within a circle, format 'lat,lng,radius_km'.</p>
+    <p><i>polygon</i> &rarr; (optional) restrict results to within a polygon, format 'lat1,lng1|lat2,lng2|...'.</p>
+    <p><i>focus</i> &rarr; (optional) prioritize results around a specific point, format 'lat,lng'.</p>
+
+    <h4>Example usage</h4>
+
+    <p><b>1. Only w3w Address and Rank:</b><br>
+    autosuggest_w3w('filled.count.so', 1)</p>
+
+    <p><b>2. w3w Address and Rank + Focus:</b><br>
+    autosuggest_w3w('filled.count.so', 1, '', '', '', '', '51.5074,-0.1278')</p>
+
+    <p><b>3. w3w Address and Rank + Country:</b><br>
+    autosuggest_w3w('filled.count.so', 1, 'GB')</p>
+
+    <p><b>4. w3w Address and Rank + Bounding Box (BBOX):</b><br>
+    autosuggest_w3w('filled.count.so', 1, '', '51.28,-0.489,51.686,0.236')</p>
+
+    <p><b>5. w3w Address and Rank + Polygon:</b><br>
+    autosuggest_w3w('filled.count.so', 1, '', '', '', '51.521,-0.343,52.6,2.3324,54.234,8.343,51.521,-0.343')</p>
+
+    <p><b>6. w3w Address and Rank + Circle:</b><br>
+    autosuggest_w3w('filled.count.so', 1, '', '', '51.5074,-0.1278,5')</p>
+
+    <p><b>7. All Together (Using All Options):</b><br>
+    autosuggest_w3w('d.d.d', 1, 'GB','-0.197277,51.520660,-0.195347,51.521612','51.521136,-0.196312,5','51.521612,-0.197277,51.520660,-0.197277,51.520660,-0.195347,51.521612,-0.195347,51.521612,-0.197277', '51.521436,-0.196612')</p>
+
+    <h4>Output</h4>
+    <p>The function returns the autosuggestion for the given incomplete w3w address and rank. If insufficient suggestions are available, an error will be raised.</p>
+    """
+    # Validate input arguments
+    if len(values) < 2:
+        parent.setEvalErrorString("Error: Insufficient number of arguments.")
+        return None
+
+    input_address = values[0]
+    rank = int(values[1])
+    
+    # Optional arguments for clipping
+    country = values[2] if len(values) > 2 else None
+    bbox = values[3] if len(values) > 3 else None
+    circle = values[4] if len(values) > 4 else None
+    polygon = values[5] if len(values) > 5 else None
+    focus = values[6] if len(values) > 6 else None
+
+    # Prepare API request
+    apiKey = pluginSetting("apiKey")
+    if not apiKey:
+        parent.setEvalErrorString("Error: API key not set.")
+        return None
+
+    w3w = what3words(apikey=apiKey)
+
+    # Construct API parameters
+    try:
+        # Make API call to autosuggest with relevant options
+        response = w3w.autosuggest(
+            input_address,
+            clip_to_country=country,
+            clip_to_bounding_box=bbox,
+            clip_to_circle=circle,
+            clip_to_polygon=polygon,
+            focus=focus
+        )
+
+        # Check if suggestions exist
+        if 'suggestions' not in response or len(response['suggestions']) < rank:
+            raise ValueError(f"Insufficient suggestions for rank {rank}.")
+
+        # Return the requested suggestion based on rank
+        suggestion = response['suggestions'][rank - 1]  # Rank starts from 1
+        return suggestion['words']
+
+    except Exception as e:
+        parent.setEvalErrorString(f"Error: {str(e)}")
+        return None
+
 
 def register_w3w_functions():
     """
@@ -148,6 +288,8 @@ def register_w3w_functions():
     """
     QgsExpression.registerFunction(convert_to_3wa)
     QgsExpression.registerFunction(convert_to_coord)
+    QgsExpression.registerFunction(change_w3w_language)
+    QgsExpression.registerFunction(autosuggest_w3w)
 
 
 def unregister_w3w_functions():
@@ -156,3 +298,5 @@ def unregister_w3w_functions():
     """
     QgsExpression.unregisterFunction('convert_to_3wa')
     QgsExpression.unregisterFunction('convert_to_coord')
+    QgsExpression.registerFunction(change_w3w_language)
+    QgsExpression.registerFunction(autosuggest_w3w)
