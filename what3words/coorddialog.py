@@ -1,7 +1,7 @@
 from builtins import str
 import os
 from PyQt5.QtWidgets import (QLineEdit, QDockWidget, QHBoxLayout, QVBoxLayout,
-                             QListWidget, QListWidgetItem, QWidget, QCheckBox, QApplication)
+                             QListWidget, QListWidgetItem, QWidget, QCheckBox, QApplication, QSizePolicy)
 from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject)
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QCursor, QPalette
@@ -72,89 +72,79 @@ class W3WCoordInputDialog(QDockWidget):
 
     def suggestW3W(self, text):
         """
-        Fetches suggestions based on the input text for autosuggest functionality.
-        Trigger suggestions after at least the first letter of the 3rd word is entered.
-        If the bounding box checkbox is checked, clip the suggestions to the map view.
+        Fetches autosuggest suggestions for a partial what3words address. 
+        If the bounding box checkbox is selected, clips suggestions to the map extent.
         """
-        self.suggestionsList.clear()  # Clear previous suggestions
-        self.suggestionsList.setVisible(False)  # Hide the list initially
+        self.suggestionsList.clear()
+        self.suggestionsList.setVisible(False)
 
         apiKey = pluginSetting("apiKey")
         addressLanguage = pluginSetting("addressLanguage")
+
+        if not apiKey:
+            iface.messageBar().pushMessage("what3words", "API key missing. Please set the API key in plugin settings.", level=Qgis.Warning, duration=5)
+            return
+
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
 
-        # Ensure this is a possible what3words address format
+        # Validate what3words address format
         if not self.w3w.is_possible_3wa(text):
             return
 
         try:
-            # Check if the bounding box checkbox is checked
-            if self.boundingBoxCheckbox.isChecked():
-                # Apply bounding box if checkbox is checked
-                extent = self.canvas.extent()
-                canvasCrs = self.canvas.mapSettings().destinationCrs()
-                epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
-                transform4326 = QgsCoordinateTransform(canvasCrs, epsg4326, QgsProject.instance())
-                bottom_left = transform4326.transform(extent.xMinimum(), extent.yMinimum())
-                top_right = transform4326.transform(extent.xMaximum(), extent.yMaximum())
-                bbox = f"{bottom_left.y()},{bottom_left.x()},{top_right.y()},{top_right.x()}"
-                suggestions = self.w3w.autosuggest(text, clip_to_bounding_box=bbox)
-            else:
-                # Fetch suggestions without bounding box
-                suggestions = self.w3w.autosuggest(text)
+            suggestions = self.fetchSuggestions(text)
 
-            # Ensure we have suggestions in the response
-            if 'suggestions' in suggestions and len(suggestions['suggestions']) > 0:
-                for suggestion in suggestions['suggestions']:
-                    item_text = f"///{suggestion['words']}, {suggestion['nearestPlace']}"
-                    item = QListWidgetItem(item_text)
-                    self.suggestionsList.addItem(item)
+            if not suggestions.get('suggestions'):
+                error_message = suggestions.get('error', {}).get('message', 'No suggestions found.')
+                iface.messageBar().pushMessage("what3words", error_message, level=Qgis.Warning, duration=5)
+                return
 
-                self.suggestionsList.setVisible(True)  # Show suggestions
-                # Fix height to show 3 items (adjust row size accordingly)
-                num_items = min(len(suggestions['suggestions']), 3)
-                total_height = self.suggestionsList.sizeHintForRow(0) * num_items
-                self.suggestionsList.setFixedHeight(total_height)
-
-                # Set a fixed width for the suggestion list to prevent horizontal scrolling
-                self.suggestionsList.setFixedWidth(self.coordBox.width())
-
-                # Set the style for the suggestions dropdown
-                self.suggestionsList.setStyleSheet("""
-                    QListWidget {
-                        background-color: white; 
-                        color: #000000; 
-                        padding: 0px; 
-                        border: 1px solid #E0E0E0;
-                    }
-                    QListWidget::item {
-                        padding: 2px 6px;
-                        color: #000000;
-                    }
-                    QListWidget::item:selected {
-                        background-color: #E0E0E0; 
-                        color: #696969; 
-                    }
-                """)
-
-                # Ensure scrollbars are disabled
-                self.suggestionsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-                self.suggestionsList.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-                # Adjust the height to fit the contents
-                num_items = self.suggestionsList.count()
-                item_height = self.suggestionsList.sizeHintForRow(0)
-                total_height = item_height * num_items
-                self.suggestionsList.setFixedHeight(total_height)
-
-                # Position the dropdown directly below the input field
-                self.suggestionsList.move(self.coordBox.x(), self.coordBox.y() + self.coordBox.height())
-
-                # Set size policy to ensure no extra space is allocated
-                self.suggestionsList.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            self.populateSuggestionsList(suggestions['suggestions'])
 
         except Exception as e:
-            pass  # Silently fail for suggestions fetching
+            iface.messageBar().pushMessage("what3words", f"Network error: {str(e)}", level=Qgis.Warning, duration=5)
+
+    def fetchSuggestions(self, text):
+        """Fetches suggestions from the what3words API, with optional bounding box clipping."""
+        if self.boundingBoxCheckbox.isChecked():
+            bbox = self.getBoundingBox()
+            return self.w3w.autosuggest(text, clip_to_bounding_box=bbox)
+        return self.w3w.autosuggest(text)
+
+    def getBoundingBox(self):
+        """Returns a bounding box string in EPSG:4326 coordinates for the current map extent."""
+        extent = self.canvas.extent()
+        canvasCrs = self.canvas.mapSettings().destinationCrs()
+        epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
+        transform4326 = QgsCoordinateTransform(canvasCrs, epsg4326, QgsProject.instance())
+        bottom_left = transform4326.transform(extent.xMinimum(), extent.yMinimum())
+        top_right = transform4326.transform(extent.xMaximum(), extent.yMaximum())
+        return f"{bottom_left.y()},{bottom_left.x()},{top_right.y()},{top_right.x()}"
+
+    def populateSuggestionsList(self, suggestions):
+        """Populates the suggestions list widget with items from the suggestions data."""
+        for suggestion in suggestions:
+            item_text = f"///{suggestion['words']}, {suggestion['nearestPlace']}"
+            self.suggestionsList.addItem(QListWidgetItem(item_text))
+
+        self.suggestionsList.setVisible(True)
+        self.adjustSuggestionsListSize(len(suggestions))
+
+    def adjustSuggestionsListSize(self, num_items):
+        """Adjusts the size and styling of the suggestions list."""
+        num_items = min(num_items, 3)
+        total_height = self.suggestionsList.sizeHintForRow(0) * num_items
+        self.suggestionsList.setFixedHeight(total_height)
+        self.suggestionsList.setFixedWidth(self.coordBox.width())
+        self.suggestionsList.setStyleSheet("""
+            QListWidget { background-color: white; color: #000000; padding: 0px; border: 1px solid #E0E0E0; }
+            QListWidget::item { padding: 2px 6px; color: #000000; }
+            QListWidget::item:selected { background-color: #E0E0E0; color: #696969; }
+        """)
+        self.suggestionsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.suggestionsList.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.suggestionsList.move(self.coordBox.x(), self.coordBox.y() + self.coordBox.height())
+        self.suggestionsList.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
     def onSuggestionSelected(self, item):
         """
@@ -197,7 +187,9 @@ class W3WCoordInputDialog(QDockWidget):
             self.canvas.zoomScale(591657550.5 / (2 ** self.zoom_level))  # Adjust the zoom level
             self.canvas.refresh()
 
+        except KeyError as e:
+            iface.messageBar().pushMessage("what3words", "Invalid what3words address. Check the address and try again.", level=Qgis.Warning, duration=5)
         except Exception as e:
-            iface.messageBar().pushMessage("what3words", f"The Error is: {str(e)}", level=Qgis.Warning, duration=5)
+            iface.messageBar().pushMessage("what3words", f"Error: {str(e)}", level=Qgis.Warning, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
