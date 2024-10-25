@@ -7,7 +7,7 @@ from qgis.PyQt.QtGui import QCursor
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
-from what3words.w3w import what3words
+from what3words.w3w import what3words, GeoCodeException
 from what3words.shared_layer_point import W3WPointLayerManager
 
 
@@ -46,9 +46,9 @@ class W3WMapTool(QgsMapTool):
                 
             return w3w_info, pt4326  # Return both W3W info and transformed point
 
-        except Exception as ex:
-            print(f"Error calling what3words API: {str(ex)}")
-            raise  # Re-raise the exception after logging it
+        except GeoCodeException as e:
+            # Directly use the error message provided by GeoCodeException
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Critical, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
 

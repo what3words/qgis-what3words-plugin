@@ -1,5 +1,4 @@
 from builtins import str
-import os
 from PyQt5.QtWidgets import (QLineEdit, QDockWidget, QHBoxLayout, QVBoxLayout, QPushButton,
                              QListWidget, QListWidgetItem, QWidget, QCheckBox, QApplication, QSizePolicy)
 from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsPointXY)
@@ -10,7 +9,7 @@ from qgis.PyQt.QtGui import QPalette
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
 from what3words.shared_layer_point import W3WPointLayerManager
-from what3words.w3w import what3words
+from what3words.w3w import what3words, GeoCodeException
 
 class W3WCoordInputDialog(QDockWidget):
     def __init__(self, canvas, parent):
@@ -226,10 +225,9 @@ class W3WCoordInputDialog(QDockWidget):
             self.canvas.zoomScale(591657550.5 / (2 ** self.zoom_level))
             self.canvas.refresh()
 
-        except KeyError as e:
-            iface.messageBar().pushMessage("what3words", "Invalid what3words address. Check the address and try again.", level=Qgis.Warning, duration=5)
-        except Exception as e:
-            iface.messageBar().pushMessage("what3words", f"Error: {str(e)}", level=Qgis.Warning, duration=5)
+        except GeoCodeException as e:
+            # Directly use the error message provided by GeoCodeException
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Critical, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
 

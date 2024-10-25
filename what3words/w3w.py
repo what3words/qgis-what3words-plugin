@@ -218,5 +218,12 @@ class what3words(object):
                 raise GeoCodeException(f"API error: {full_error_message}")
 
         except Exception as e:
-            iface.messageBar().pushMessage("what3words", f"Request failed: {str(e)}", level=Qgis.Critical, duration=5)
-            raise GeoCodeException(f"Request failed: {str(e)}")
+            error_message = str(e)
+            if "Payment Required" in error_message:
+                raise GeoCodeException(
+                    "Quota exceeded or API plan does not have access to this feature. "
+                    "Please change your plan at https://accounts.what3words.com/select-plan, "
+                    "or contact support@what3words.com."
+                )
+            else:
+                raise GeoCodeException(f"Request failed: {error_message}")

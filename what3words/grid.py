@@ -11,7 +11,7 @@ from qgis.PyQt.QtGui import QCursor
 from qgis.PyQt.QtWidgets import QApplication, QFileDialog, QMessageBox
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
-from what3words.w3w import what3words
+from what3words.w3w import what3words, GeoCodeException
 
 
 
@@ -172,9 +172,9 @@ class W3WGridManager:
             # Update last fetched extent
             self.last_grid_extent = current_extent
 
-        except Exception as e:
-            iface.messageBar().pushMessage("what3words", 
-                f"Error fetching grid: {str(e)}", level=Qgis.Critical, duration=5)
+        except GeoCodeException as e:
+            # Directly use the error message provided by GeoCodeException
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Critical, duration=5)
         finally:
             QApplication.restoreOverrideCursor()
 
