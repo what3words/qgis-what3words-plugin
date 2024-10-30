@@ -101,7 +101,7 @@ def convert_to_coord(values, feature, parent):
 @qgsfunction(-1, group=group_name)
 def convert_to_3wa(values, feature, parent):
     """
-    Convert latitude and longitude to a what3words address (3-word address).
+    Convert latitude and longitude to a what3words address (3 word address).
 
     <h4>Syntax</h4>
     <p><b>convert_to_3wa( latitude, longitude[, language='en'] )</b></p>
@@ -112,7 +112,7 @@ def convert_to_3wa(values, feature, parent):
     <p><i>language</i> &rarr; (Optional) The 2-letter ISO code for the language. Default is 'en' (English).</p>
 
     <h4>Output</h4>
-    <p>This function returns the 3-word what3words address for the given coordinates.</p>
+    <p>This function returns the 3 word what3words address for the given coordinates.</p>
 
     <h4>Example usage</h4>
     <ul>
@@ -134,7 +134,7 @@ def convert_to_3wa(values, feature, parent):
 
         w3w = get_w3w_api()  # Get the what3words API key from settings
         result = w3w.convertTo3wa(lat, lon, language=language)
-        return result['words']  # Return the 3-word address
+        return result['words']  # Return the 3 word address
 
     except Exception as e:
         parent.setEvalErrorString(f"Error converting to what3words address: {str(e)}")
@@ -154,7 +154,7 @@ def change_w3w_language(values, feature, parent):
     <p><i>target_language</i> &rarr; The 2-letter ISO code for the target language (e.g., 'es' for Spanish).</p>
 
     <h4>Output</h4>
-    <p>This function returns the 3-word what3words address in the specified language.</p>
+    <p>This function returns the 3 word what3words address in the specified language.</p>
 
     <h4>Example usage</h4>
     <ul>
@@ -210,29 +210,29 @@ def autosuggest_w3w(values, feature, parent):
 
     <h4>Example usage</h4>
 
-    <p><b>1. Only w3w Address and Rank:</b><br>
+    <p><b>1. Only what3words Address and Rank:</b><br>
     autosuggest_w3w('filled.count.so', 1)</p>
 
-    <p><b>2. w3w Address and Rank + Focus:</b><br>
+    <p><b>2. what3words Address and Rank + Focus:</b><br>
     autosuggest_w3w('filled.count.so', 1, '', '', '', '', '51.5074,-0.1278')</p>
 
-    <p><b>3. w3w Address and Rank + Country:</b><br>
+    <p><b>3. what3words Address and Rank + Country:</b><br>
     autosuggest_w3w('filled.count.so', 1, 'GB')</p>
 
-    <p><b>4. w3w Address and Rank + Bounding Box (BBOX):</b><br>
+    <p><b>4. what3words Address and Rank + Bounding Box (BBOX):</b><br>
     autosuggest_w3w('filled.count.so', 1, '', '51.28,-0.489,51.686,0.236')</p>
 
-    <p><b>5. w3w Address and Rank + Polygon:</b><br>
+    <p><b>5. what3words Address and Rank + Polygon:</b><br>
     autosuggest_w3w('filled.count.so', 1, '', '', '', '51.521,-0.343,52.6,2.3324,54.234,8.343,51.521,-0.343')</p>
 
-    <p><b>6. w3w Address and Rank + Circle:</b><br>
+    <p><b>6. what3words Address and Rank + Circle:</b><br>
     autosuggest_w3w('filled.count.so', 1, '', '', '51.5074,-0.1278,5')</p>
 
     <p><b>7. All Together (Using All Options):</b><br>
     autosuggest_w3w('d.d.d', 1, 'GB','-0.197277,51.520660,-0.195347,51.521612','51.521136,-0.196312,5','51.521612,-0.197277,51.520660,-0.197277,51.520660,-0.195347,51.521612,-0.195347,51.521612,-0.197277', '51.521436,-0.196612')</p>
 
     <h4>Output</h4>
-    <p>The function returns the autosuggestion for the given incomplete w3w address and rank. If insufficient suggestions are available, an error will be raised.</p>
+    <p>The function returns the autosuggestion for the given incomplete what3words address and rank. If insufficient suggestions are available, an error will be raised.</p>
     """
     # Validate input arguments
     if len(values) < 2:
