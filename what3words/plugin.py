@@ -12,7 +12,7 @@ from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.utils import iface
 from qgiscommons2.gui import (addAboutMenu, addHelpMenu, removeAboutMenu,
                               removeHelpMenu)
-from qgiscommons2.gui.settings import addSettingsMenu, removeSettingsMenu, openSettingsDialog
+from qgiscommons2.gui.settings import addSettingsMenu, removeSettingsMenu, openSettingsDialog, _settingActions, ConfigDialog
 from qgiscommons2.settings import pluginSetting, readSettings
 
 from what3words.coorddialog import W3WCoordInputDialog 
@@ -28,8 +28,9 @@ class W3WTools(object):
         self.iface = iface
         self.gridManager = None  
         self.mapTool = None
-        self.provider = W3WProvider()
         self.zoomToDialog = None 
+        self.settingsDialog = None
+        self.provider = W3WProvider()
         register_w3w_functions() 
         
         try:
@@ -73,6 +74,7 @@ class W3WTools(object):
         # Add settings button to toolbar
         if not hasattr(self, 'settingsAction'):
             self.settingsAction = QAction(QgsApplication.getThemeIcon('/mActionOptions.svg'), "Settings",iface.mainWindow())
+            self.gridToggleAction.setCheckable(True)
             self.settingsAction.triggered.connect(self.showSettingsDialog)
             self.iface.addToolBarIcon(self.settingsAction)
             self.iface.addPluginToMenu("what3words", self.settingsAction)
@@ -83,6 +85,7 @@ class W3WTools(object):
         self.zoomToDialog.hide()
 
         # Add settings, help, and about menus
+        # addSettingsMenu("what3words", self.iface.addPluginToMenu)
         addHelpMenu("what3words", self.iface.addPluginToMenu)
         addAboutMenu("what3words", self.iface.addPluginToMenu)
 
@@ -98,9 +101,39 @@ class W3WTools(object):
     
     def showSettingsDialog(self):
         """
-        Opens the settings dialog.
+        Opens the settings dialog if it's not already open. Disables the settings button
+        while the dialog is open and re-enables it when the dialog is closed.
         """
-        openSettingsDialog("what3words")
+        # Check if the dialog is already open
+        if self.settingsDialog is not None:
+            # Bring the dialog to the front if it's already open
+            self.settingsDialog.raise_()
+            return
+
+        # Attempt to open the settings dialog
+        self.settingsDialog = ConfigDialog("what3words")
+        print("Settings Dialog:", self.settingsDialog)  # Add this line to debug
+
+        # If openSettingsDialog did not return a valid dialog, handle it with a message
+        if self.settingsDialog is None:
+            self._showMessage("Error: Could not open settings dialog.", Qgis.Critical)
+            return
+
+        # Disable the settings button while dialog is open
+        self.settingsAction.setEnabled(False)
+
+        # Ensure the settings button is re-enabled when the dialog is closed
+        self.settingsDialog.finished.connect(self.onSettingsDialogClosed)
+
+        # Show the dialog
+        self.settingsDialog.show()
+
+    def onSettingsDialogClosed(self):
+        """
+        Callback when the settings dialog is closed. Re-enables the settings button.
+        """
+        self.settingsAction.setEnabled(True)
+        self.settingsDialog = None  # Reset dialog reference
 
     def warningAPIsettings(self):
         apikey = pluginSetting("apiKey")
@@ -155,14 +188,7 @@ class W3WTools(object):
             self.iface.mapCanvas().setMapTool(self.mapTool)
             self.toolAction.setChecked(True)
             self._showMessage("View what3words address tool activated. Click on the map to get what3words address.", Qgis.Info)
-
-    def unsetTool(self, tool):
-        """
-        Unchecks the map tool action if another map tool is set.
-        """
-        if tool != self.mapTool:
-            self.toolAction.setChecked(False)
-            
+     
     def unload(self):
         """
         Cleans up all components when the plugin is unloaded.
@@ -170,42 +196,59 @@ class W3WTools(object):
         if self.gridManager and self.gridManager.grid_enabled:
             self.gridManager.enableGrid(False)
 
-        self.iface.removeToolBarIcon(self.gridToggleAction)
-        self.iface.removePluginMenu("what3words", self.gridToggleAction)
-        
+        # Remove the grid toggle action
+        if hasattr(self, 'gridToggleAction'):
+            self.iface.removeToolBarIcon(self.gridToggleAction)
+            self.iface.removePluginMenu("what3words", self.gridToggleAction)
+            del self.gridToggleAction
+
+        # Unset map tool and remove tool action if present
         self.iface.mapCanvas().unsetMapTool(self.mapTool)
         if hasattr(self, 'toolAction'):
             self.iface.removeToolBarIcon(self.toolAction)
             self.iface.removePluginMenu("what3words", self.toolAction)
             del self.toolAction
 
+        # Remove zoom action if present
         if hasattr(self, 'zoomToAction'):
             self.iface.removeToolBarIcon(self.zoomToAction)
             self.iface.removePluginMenu("what3words", self.zoomToAction)
             del self.zoomToAction
-        
-        self.iface.removeToolBarIcon(self.settingsAction)
-        self.iface.removeDockWidget(self.zoomToDialog)
 
-        removeSettingsMenu("what3words")
+        # Remove settings action if present
+        if hasattr(self, 'settingsAction'):
+            self.iface.removeToolBarIcon(self.settingsAction)
+            self.iface.removePluginMenu("what3words", self.settingsAction)
+            del self.settingsAction
+
+        # Remove the dock widget
+        if self.zoomToDialog:
+            self.iface.removeDockWidget(self.zoomToDialog)
+
+        if "what3words" in _settingActions:
+            removeSettingsMenu("what3words")
+
+        # Remove help and about menus
         removeHelpMenu("what3words")
         removeAboutMenu("what3words")
-        unregister_w3w_functions()
 
+        # Unregister functions and processing provider
+        unregister_w3w_functions()
         QgsApplication.processingRegistry().removeProvider(self.provider)
 
+        # Attempt to remove test modules and lessons folders if they exist
         try:
             from qgistester.tests import removeTestModule
             from what3words.tests import testerplugin
             removeTestModule(testerplugin, "what3words")
-        except:
+        except ImportError:
             pass
 
         try:
             from lessons import removeLessonsFolder
-            folder = os.path.join(pluginPath, '_lessons')
+            folder = os.path.join(os.path.dirname(__file__), '_lessons')
             removeLessonsFolder(folder)
-        except:
+        except ImportError:
             pass
 
     def _showMessage(self, message, level=Qgis.Info):
