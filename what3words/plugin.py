@@ -4,18 +4,17 @@ import os
 import webbrowser
 from builtins import object
 
-from qgis.core import Qgis, QgsApplication, QgsProject
-from qgis.gui import QgsMessageBar
-from qgis.PyQt.QtCore import QCoreApplication, Qt
+from qgis.core import Qgis, QgsApplication
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMessageBox
+from qgis.PyQt.QtWidgets import QAction
 from qgis.utils import iface
 from qgiscommons2.gui import (addAboutMenu, addHelpMenu, removeAboutMenu,
                               removeHelpMenu)
-from qgiscommons2.gui.settings import addSettingsMenu, removeSettingsMenu, openSettingsDialog, _settingActions, ConfigDialog
+from qgiscommons2.gui.settings import removeSettingsMenu, _settingActions, ConfigDialog
 from qgiscommons2.settings import pluginSetting, readSettings
 
-from what3words.coorddialog import W3WCoordInputDialog 
+from what3words.coorddialog_new_ui import W3WCoordInputDialog 
 from what3words.maptool import W3WMapTool
 from what3words.grid import W3WGridManager
 from what3words.w3wfunctions import register_w3w_functions, unregister_w3w_functions 
@@ -74,7 +73,7 @@ class W3WTools(object):
         # Add settings button to toolbar
         if not hasattr(self, 'settingsAction'):
             self.settingsAction = QAction(QgsApplication.getThemeIcon('/mActionOptions.svg'), "Settings",iface.mainWindow())
-            self.gridToggleAction.setCheckable(True)
+            self.settingsAction.setCheckable(True)
             self.settingsAction.triggered.connect(self.showSettingsDialog)
             self.iface.addToolBarIcon(self.settingsAction)
             self.iface.addPluginToMenu("what3words", self.settingsAction)
@@ -112,7 +111,7 @@ class W3WTools(object):
 
         # Attempt to open the settings dialog
         self.settingsDialog = ConfigDialog("what3words")
-        print("Settings Dialog:", self.settingsDialog)  # Add this line to debug
+        # print("Settings Dialog:", self.settingsDialog)  # Add this line to debug
 
         # If openSettingsDialog did not return a valid dialog, handle it with a message
         if self.settingsDialog is None:
@@ -149,7 +148,7 @@ class W3WTools(object):
         
         if self.zoomToDialog.isHidden():
             self.zoomToDialog.show()
-            self._showMessage("Start typing a what3words address, e.g. index.home.raft", Qgis.Info)
+            self._showMessage("Search for a what3words address, e.g. index.home.raft", Qgis.Info)
         else:
             self.zoomToDialog.hide()
 
@@ -187,7 +186,7 @@ class W3WTools(object):
             
             self.iface.mapCanvas().setMapTool(self.mapTool)
             self.toolAction.setChecked(True)
-            self._showMessage("View what3words address tool activated. Click on the map to get what3words address.", Qgis.Info)
+            self._showMessage("View what3words address tool activated. Click on the map to get the what3words address.", Qgis.Info)
      
     def unload(self):
         """

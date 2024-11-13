@@ -3,7 +3,7 @@ from qgis.core import (Qgis, QgsVectorLayer, QgsField, QgsProject,
                        QgsWkbTypes, QgsFeature, QgsGeometry, QgsSymbolLayer,
                        QgsPointXY, QgsMarkerSymbol, QgsSvgMarkerSymbolLayer, QgsProperty)
 from PyQt5.QtCore import QVariant
-from qgis.utils import iface
+from qgis.utils import iface 
 
 class W3WPointLayerManager:
     _instance = None  # Singleton instance
@@ -33,7 +33,8 @@ class W3WPointLayerManager:
                 QgsField("lng", QVariant.Double),
                 QgsField("nearestPlace", QVariant.String),
                 QgsField("country", QVariant.String),
-                QgsField("language", QVariant.String)
+                QgsField("language", QVariant.String),
+                QgsField("label", QVariant.String)
             ])
             self.point_layer.updateFields()
 
@@ -69,34 +70,13 @@ class W3WPointLayerManager:
             # Add the layer to the project
             QgsProject.instance().addMapLayer(self.point_layer)
 
-    def checkForDuplicate(self, lat, lng):
-        """
-        Checks if a point with the same coordinates already exists in the layer.
-        :param lat: Latitude of the point.
-        :param lng: Longitude of the point.
-        :return: True if the coordinates already exist, False otherwise.
-        """
-        if not self.point_layer:
-            return False
-
-        # Check each feature in the layer to see if the coordinates already exist
-        for feature in self.point_layer.getFeatures():
-            if feature['lat'] == lat and feature['lng'] == lng:
-                return True
-        return False
-
     def addPointFeature(self, point_data, clicked_point=None):
         """
-        Adds a W3W point feature to the layer, but first checks for duplicates.
+        Adds a W3W point feature to the layer.
         Uses `clicked_point` if provided, otherwise uses W3W API coordinates.
         """
         # Ensure 'words' is present in the response
         if 'words' not in point_data:
-            iface.messageBar().pushMessage(
-                "what3words", 
-                "Invalid what3words data: Missing words", 
-                level=Qgis.Warning, duration=5
-            )
             return
 
         w3w_address = point_data['words']
@@ -109,16 +89,6 @@ class W3WPointLayerManager:
             coordinates = point_data['coordinates']
             lat = coordinates['lat']
             lng = coordinates['lng']
-
-        # Check for duplicates before adding
-        if self.checkForDuplicate(lat, lng):
-            iface.messageBar().pushMessage(
-                "what3words", 
-                f"Duplicate coordinates detected. The point with these coordinates already exists.", 
-                level=Qgis.Warning, duration=5
-            )
-            return  # Do not add a duplicate with the same coordinates
-
 
         # Create the point geometry
         point = QgsPointXY(lng, lat)
@@ -137,13 +107,11 @@ class W3WPointLayerManager:
             lng,  # Use the lng from clicked_point or W3W API
             point_data.get('nearestPlace', ''),
             point_data.get('country', ''),
-            point_data.get('language', '')
+            point_data.get('language', ''),
+            point_data.get('label', ''),
         ])
 
         # Add the feature to the layer
         self.point_layer.dataProvider().addFeatures([feature])
         self.point_layer.updateExtents()
         self.point_layer.triggerRepaint()
-        
-        # Notify user of successful addition
-        iface.messageBar().pushMessage("what3words", f"Point added for '{w3w_address}'", level=Qgis.Success, duration=5)

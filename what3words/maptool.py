@@ -1,9 +1,11 @@
 import os
 from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform,
-                       QgsProject, QgsPointXY, QgsField)
-from qgis.gui import QgsMapTool
-from qgis.PyQt.QtCore import Qt, QVariant
+                       QgsProject, QgsPointXY)
+from qgis.gui import QgsMapTool, QgsVertexMarker
+from qgis.PyQt.QtCore import Qt
+from PyQt5.QtWidgets import QTableWidgetItem
 from qgis.PyQt.QtGui import QCursor
+from PyQt5.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
@@ -12,12 +14,14 @@ from what3words.shared_layer_point import W3WPointLayerManager
 
 
 class W3WMapTool(QgsMapTool):
-
+    w3wAddressCaptured = pyqtSignal(QgsPointXY)
+    w3wAddressCapturedForMapsite = pyqtSignal(str)
     epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
 
-    def __init__(self, canvas):
-        QgsMapTool.__init__(self, canvas)
+    def __init__(self, canvas, coord_dialog):
+        super().__init__(canvas)
         self.canvas = canvas
+        self.coord_dialog = coord_dialog  # Pass coorddialog instance to access the checkbox
         self.setCursor(Qt.CrossCursor)
         apiKey = pluginSetting("apiKey")
         self.w3w = what3words(apikey=apiKey)
@@ -45,44 +49,38 @@ class W3WMapTool(QgsMapTool):
                 raise ValueError("Missing 'words' or 'coordinates' in API response")
                 
             return w3w_info, pt4326  # Return both W3W info and transformed point
-
         except GeoCodeException as e:
             # Directly use the error message provided by GeoCodeException
-            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=5)
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=2)
         finally:
             QApplication.restoreOverrideCursor()
 
-
     def canvasReleaseEvent(self, e):
         """
-        Triggered when the user clicks on the map. This will convert the clicked point
-        to a what3words address and display it to the user, as well as drawing the point.
+        Triggered when the user clicks on the map. This converts the clicked point
+        to a what3words address, adds a marker, updates the table, and copies the address to the clipboard.
         """
         pt = self.toMapCoordinates(e.pos())
+        self.w3wAddressCaptured.emit(pt)
+        
         try:
-            w3w_info, pt4326 = self.toW3W(pt)  # Get both W3W info and transformed point
+            w3w_info, pt4326 = self.toW3W(pt)  # Get W3W info and transformed point
+            if w3w_info and 'words' in w3w_info:
+                # Emit the new signal for mapsite with the 3WA
+                self.w3wAddressCapturedForMapsite.emit(w3w_info['words'])
 
-            # Check if 'coordinates' and 'words' exist in the response
-            if not w3w_info or 'coordinates' not in w3w_info or 'words' not in w3w_info:
-                iface.messageBar().pushMessage(
-                    "what3words", 
-                    "Invalid what3words data: Missing coordinates or words", 
-                    level=Qgis.Warning, duration=5
-                )
-                return
+            # Add the marker on the map at the selected point
+            self.coord_dialog.addMarker(pt)
 
-            # Add the what3words point to the shared layer, using the transformed point
-            self.point_layer_manager.addPointFeature(w3w_info, clicked_point=pt4326)
-
-            # Notify user and copy W3W address to clipboard
-            iface.messageBar().pushMessage(
-                "what3words", 
-                f"The what3words address: '{w3w_info['words']}' has been copied to the clipboard", 
-                level=Qgis.Info, duration=6
+            # Add the W3W address to the coord dialog's table
+            self.coord_dialog.addRowToTable(
+                w3w_address=w3w_info['words'],
+                lat=pt4326.y(),
+                lon=pt4326.x(),
+                nearest_place=w3w_info.get('nearestPlace', ''),
+                country=w3w_info.get('country', ''),
+                language=w3w_info.get('language', ''),
+                label=''
             )
-            clipboard = QApplication.clipboard()
-            clipboard.setText(w3w_info['words'])
-
         except GeoCodeException as e:
-            # Directly use the error message provided by GeoCodeException
-            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=5)
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=2)
