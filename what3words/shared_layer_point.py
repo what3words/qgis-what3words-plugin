@@ -21,7 +21,7 @@ class W3WPointLayerManager:
         """
         Creates the point layer if it does not exist.
         """
-        if self.point_layer is None:
+        if not self.layerExists():
             # Create the memory layer for W3W points
             self.point_layer = QgsVectorLayer("Point?crs=EPSG:4326", "what3words Points", "memory")
             provider = self.point_layer.dataProvider()
@@ -70,6 +70,11 @@ class W3WPointLayerManager:
             # Add the layer to the project
             QgsProject.instance().addMapLayer(self.point_layer)
 
+    def layerExists(self):
+        """Check if the point layer exists in the project."""
+        # Ensure the layer is defined and still part of the project
+        return self.point_layer is not None and self.point_layer in QgsProject.instance().mapLayers().values()
+    
     def addPointFeature(self, point_data, clicked_point=None):
         """
         Adds a W3W point feature to the layer.

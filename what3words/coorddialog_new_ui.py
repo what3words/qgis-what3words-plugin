@@ -30,7 +30,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.mapToolForMapsite = W3WMapTool(self.canvas, self)
         self.mapToolForMapsite.w3wAddressCapturedForMapsite.connect(self.openMapsiteInBrowser)
         self.gridManager = None 
-        self.storedMarkers = []  # List to keep track of all markers in table
+        self.storedMarkers = [] 
+        self.last_marker_coords = None
         
         self.initGui()
 
@@ -143,27 +144,38 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         # Zoom to the selected location
         self.zoomToLocation(lat, lon)
 
-    def zoomToLocation(self, lat, lon):
-        """Transforms WGS84 coordinates to the map's CRS, zooms in, and flashes a marker."""
-        # Define WGS84 and current map CRS
+    def get_map_coordinate_from_lat_lon(self, lat, lon):
         epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
         canvasCrs = self.canvas.mapSettings().destinationCrs()
-
-        # Set up the coordinate transformation
         transform = QgsCoordinateTransform(epsg4326, canvasCrs, QgsProject.instance())
 
         # Transform point from WGS84 to map CRS
         point_wgs84 = QgsPointXY(lon, lat)
         point_map_crs = transform.transform(point_wgs84)
+        return point_map_crs
+
+    def zoomToLocation(self, lat, lon):
+        """Transforms WGS84 coordinates to the map's CRS, zooms in, and flashes a marker."""
+        # Define WGS84 and current map CRS
+        point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
 
         # Center map on the transformed point and set a zoom level
         self.canvas.setCenter(point_map_crs)
         self.canvas.zoomScale(500)  # Adjust scale for close-up view
         self.canvas.refresh()
 
-        # Flash the marker
-        self.flashMarker(point_map_crs)
-    
+        # If showAllMarkersCheckBox is unchecked, check if the location is different
+        if not self.showAllMarkersCheckBox.isChecked():
+            if self.last_marker_coords != (lat, lon):
+                # Clear previous markers and add a new marker for the selected item
+                self.clearMarkers()
+                self.addMarker(point_map_crs)
+                self.flashMarker(point_map_crs)
+                # Update the last_marker_coords to the current selection
+                self.last_marker_coords = (lat, lon)
+        else:
+            self.flashMarker(point_map_crs)
+        
     def flashMarker(self, point):
         """Adds a temporary marker that flashes briefly on the map."""
         marker = QgsVertexMarker(self.canvas)
@@ -174,7 +186,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         marker.setPenWidth(4)
 
         # Remove the marker after a short delay
-        QTimer.singleShot(1000, lambda: self.canvas.scene().removeItem(marker)) 
+        QTimer.singleShot(1000, lambda: self.canvas.scene().removeItem(marker))
+        self.canvas.refresh()
 
     def deleteSelectedRow(self):
         """Remove selected entries from the coordinate table and corresponding markers from the map."""
@@ -200,10 +213,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                 lon = float(self.tableWidget.item(row, 2).text())
 
                 # Convert the coordinates from WGS84 to the map CRS to match marker positions accurately
-                epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
-                canvasCrs = self.canvas.mapSettings().destinationCrs()
-                transform = QgsCoordinateTransform(epsg4326, canvasCrs, QgsProject.instance())
-                point_map_crs = transform.transform(QgsPointXY(lon, lat))
+                point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
 
                 # Find and remove matching markers
                 markers_to_remove = [
@@ -333,7 +343,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             return
 
         # Initialize or get the layer for storing points if not already present
-        self.point_layer_manager.createPointLayer()
+        if not self.point_layer_manager.layerExists():
+            self.point_layer_manager.createPointLayer()  # Recreate the layer if missing
 
         # Loop through each row in the table and save to the layer
         for row in range(self.tableWidget.rowCount()):
@@ -363,9 +374,10 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         Adds a point feature to the layer using provided data.
         """
         try:
-            # Ensure the point_layer_manager has created or referenced the layer
-            self.point_layer_manager.createPointLayer()
-            
+            # Recheck and recreate the point layer if it has been deleted
+            if not self.point_layer_manager.layerExists():
+                self.point_layer_manager.createPointLayer()
+
             # Add point feature to the layer using point_data structure
             self.point_layer_manager.addPointFeature(point_data)
 
@@ -458,11 +470,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             lng = float(response_json["coordinates"]["lng"])
 
             # Convert coordinates to map CRS
-            canvasCrs = self.canvas.mapSettings().destinationCrs()
-            epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
-            transform4326 = QgsCoordinateTransform(epsg4326, canvasCrs, QgsProject.instance())
-            center = transform4326.transform(lng, lat)
-
+            center = self.get_map_coordinate_from_lat_lon(lat, lon)
+            
             self.addMarker(center)
 
             self.canvas.setCenter(center)
