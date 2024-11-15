@@ -568,7 +568,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         Adds a marker to the map and stores it in `storedMarkers`.
         """
         if not self.showAllMarkersCheckBox.isChecked():
-            self.clearMarkers()  # Only clear from map, not from storedMarkers
+            for marker in self.storedMarkers:
+                self.canvas.scene().removeItem(marker)
 
         marker = QgsVertexMarker(self.canvas)
         marker.setIconType(QgsVertexMarker.ICON_CROSS)
