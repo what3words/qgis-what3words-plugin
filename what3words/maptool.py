@@ -79,8 +79,7 @@ class W3WMapTool(QgsMapTool):
                 lon=pt4326.x(),
                 nearest_place=w3w_info.get('nearestPlace', ''),
                 country=w3w_info.get('country', ''),
-                language=w3w_info.get('language', ''),
-                label=''
+                language=w3w_info.get('language', '')
             )
         except GeoCodeException as e:
             iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=2)

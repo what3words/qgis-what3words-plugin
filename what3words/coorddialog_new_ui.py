@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QSizePolicy, QApplication, QDockWidget, QListWidget, QListWidgetItem, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
-from qgis.core import Qgis, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
+from qgis.core import Qgis, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsFeature, QgsGeometry
 from qgis.gui import QgsVertexMarker
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
@@ -73,6 +73,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.settingsButton.setCheckable(True)
 
         self.tableWidget.itemSelectionChanged.connect(self.onTableItemSelected)
+        self.tableWidget.setEditTriggers(QHeaderView.NoEditTriggers)
 
         self.showAllMarkersCheckBox.setChecked(True)
         self.showAllMarkersCheckBox.stateChanged.connect(self.toggleMarkerDisplay)
@@ -93,8 +94,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.inputField.addWidget(self.listWidget, 1, 0, 1, 2)
 
         # Set up the table widget
-        self.tableWidget.setColumnCount(7)
-        self.tableWidget.setHorizontalHeaderLabels(["what3words", "Latitude", "Longitude", "Nearest Place", "Country", "Language", "Label"])
+        self.tableWidget.setColumnCount(6)
+        self.tableWidget.setHorizontalHeaderLabels(["what3words", "Latitude", "Longitude", "Nearest Place", "Country", "Language"])
         header = self.tableWidget.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
 
@@ -102,19 +103,28 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.handleDarkMode()
     
     ## Table handling
-    def addRowToTable(self, w3w_address, lat, lon, nearest_place, country, language, label=""):
+    def addRowToTable(self, w3w_address, lat, lon, nearest_place, country, language):
         """
         Adds a new row to the table with what3words data.
         """
         row_position = self.tableWidget.rowCount()
         self.tableWidget.insertRow(row_position)
-        self.tableWidget.setItem(row_position, 0, QTableWidgetItem(w3w_address))
-        self.tableWidget.setItem(row_position, 1, QTableWidgetItem(str(lat)))
-        self.tableWidget.setItem(row_position, 2, QTableWidgetItem(str(lon)))
-        self.tableWidget.setItem(row_position, 3, QTableWidgetItem(nearest_place))
-        self.tableWidget.setItem(row_position, 4, QTableWidgetItem(country))
-        self.tableWidget.setItem(row_position, 5, QTableWidgetItem(language))
-        self.tableWidget.setItem(row_position, 6, QTableWidgetItem(label))
+        # List of columns with values and editability
+        columns = [
+            (w3w_address, False),  # Read-only
+            (str(lat), False),     # Read-only
+            (str(lon), False),     # Read-only
+            (nearest_place, False),# Read-only
+            (country, False),      # Read-only
+            (language, False)     # Read-only
+        ]
+
+        # Add items to the table with the appropriate editability
+        for col_index, (value, editable) in enumerate(columns):
+            item = QTableWidgetItem(value)
+            if not editable:
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)  # Make item read-only
+            self.tableWidget.setItem(row_position, col_index, item)
 
         QApplication.clipboard().setText(w3w_address)
         iface.messageBar().pushMessage(
@@ -127,7 +137,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.tableWidget.selectRow(row_position)  # Select the new row
         self.tableWidget.scrollToItem(self.tableWidget.item(row_position, 0))  # Scroll to the new row
         self.tableWidget.blockSignals(False)  # Re-enable the selection signal
-
+    
     def onTableItemSelected(self):
         """Handles the table row selection, updating markers without zooming."""
         selected_items = self.tableWidget.selectedItems()
@@ -323,17 +333,26 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
     ## Layer handling
     def handleSaveToLayer(self):
         """
-        Saves all records from the table to a layer. If there are no records, shows an error message.
+        Saves all records from the table to a new layer. If there are no records, shows an error message.
         """
         if self.tableWidget.rowCount() == 0:
-            iface.messageBar().pushMessage("what3words", "No records in the table to save.", level=Qgis.Warning, duration=2)
+            iface.messageBar().pushMessage(
+                "what3words", "No records in the table to save.", level=Qgis.Warning, duration=2
+            )
             return
 
-        # Initialize or get the layer for storing points if not already present
-        if not self.point_layer_manager.layerExists():
-            self.point_layer_manager.createPointLayer()  # Recreate the layer if missing
+        # Create a new temporary point layer
+        new_layer = self.point_layer_manager.createPointLayer()
+
+        # Check if the new layer was created successfully
+        if not new_layer:
+            iface.messageBar().pushMessage(
+                "what3words", "Failed to create a new layer. Please try again.", level=Qgis.Critical, duration=3
+            )
+            return
 
         # Loop through each row in the table and save to the layer
+        features = []
         for row in range(self.tableWidget.rowCount()):
             w3w_address = self.tableWidget.item(row, 0).text()
             latitude = float(self.tableWidget.item(row, 1).text())
@@ -343,18 +362,27 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             language = self.tableWidget.item(row, 5).text()
 
             # Create the data structure for the point feature
-            point_data = {
-                "words": w3w_address,
-                "coordinates": {"lat": latitude, "lng": longitude},
-                "nearestPlace": nearest_place,
-                "country": country,
-                "language": language
-            }
+            feature = QgsFeature()
+            feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(longitude, latitude)))
+            feature.setAttributes([
+                w3w_address,
+                latitude,
+                longitude,
+                nearest_place,
+                country,
+                language
+            ])
+            features.append(feature)
 
-            # Save each record as a point feature
-            self.saveToLayer(point_data)
+        # Add all features to the new layer
+        if features:
+            new_layer.dataProvider().addFeatures(features)
+            new_layer.updateExtents()
+            new_layer.triggerRepaint()
 
-        iface.messageBar().pushMessage("what3words", "All records saved to the layer.", level=Qgis.Success, duration=3)
+        iface.messageBar().pushMessage(
+            "what3words", f"All records saved to the new layer '{new_layer.name()}'.", level=Qgis.Success, duration=3
+        )
 
     def saveToLayer(self, point_data):
         """
@@ -523,7 +551,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                     writer = csv.writer(file)
                     
                     # Write the header
-                    headers = ["what3words", "Latitude", "Longitude", "Nearest Place", "Country", "Language", "Label"]
+                    headers = ["what3words", "Latitude", "Longitude", "Nearest Place", "Country", "Language"]
                     writer.writerow(headers)
                     
                     # Write each row of data from the table
