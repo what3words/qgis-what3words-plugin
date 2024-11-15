@@ -32,21 +32,17 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.gridManager = None 
         self.storedMarkers = [] 
         self.last_marker_coords = None
+        apiKey = pluginSetting("apiKey")
+        addressLanguage = pluginSetting("addressLanguage")
+        self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
         
         self.initGui()
-
-    def setApiKey(self, apikey):
-        self.w3w = what3words(apikey=apikey)
-
-    def setAddressLanguage(self, addressLanguage):
-        self.w3w = what3words(addressLanguage=addressLanguage)
 
     def initGui(self):
         self.w3wCaptureButton.setIcon(QIcon(os.path.join(ICON_PATH, "w3w_marker.svg")))
         self.viewGridButton.setIcon(QIcon(os.path.join(ICON_PATH, "grid_red.svg")))
-        self.clipToExtentButton.setIcon(QIcon(":images/themes/default/algorithms/mAlgorithmClip.svg"))
         self.saveToFileButton.setIcon(QIcon(':/images/themes/default/mActionFileSave.svg'))
-        self.openMapsiteButton.setIcon(QIcon(os.path.join(ICON_PATH, "w3w.svg")))
+        self.openMapsiteButton.setIcon(QIcon(os.path.join(ICON_PATH, "w3w_search.svg")))
         self.settingsButton.setIcon(QIcon(':/images/themes/default/mActionOptions.svg'))
         self.createLayerButton.setIcon(QIcon(":images/themes/default/mActionAddOgrLayer.svg"))
         self.clearMarkersButton.setIcon(QIcon(':/images/themes/default/mIconClearText.svg'))
@@ -59,9 +55,6 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
         self.viewGridButton.clicked.connect(self.toggleGrid)
         self.viewGridButton.setCheckable(True)
-
-        self.clipToExtentButton.clicked.connect(self.fetchSuggestions)
-        self.clipToExtentButton.setCheckable(True)
 
         self.saveToFileButton.clicked.connect(self.saveToFile)
         # self.saveToFileButton.setCheckable(False)
@@ -419,7 +412,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             return
 
         try:
-            suggestions = self.fetchSuggestions(text)
+            suggestions = self.w3w.autosuggest(text)
 
             if not suggestions.get('suggestions'):
                 error_message = suggestions.get('error', {}).get('message', 'No suggestions found.')
@@ -430,13 +423,6 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
         except Exception as e:
             iface.messageBar().pushMessage("what3words", f"Network error: {str(e)}", level=Qgis.Warning, duration=2)
-
-    def fetchSuggestions(self, text):
-        """Fetches suggestions from the what3words API, with optional bounding box clipping."""
-        if self.clipToExtentButton.isChecked():
-            bbox = self.getBoundingBox()
-            return self.w3w.autosuggest(text, clip_to_bounding_box=bbox)
-        return self.w3w.autosuggest(text)
 
     def populateSuggestionsList(self, suggestions):
         """Populates the suggestions list widget with items from the suggestions data."""
@@ -487,8 +473,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             # Convert coordinates to map CRS
             center = self.get_map_coordinate_from_lat_lon(lat, lng)
             
-            # self.addMarker(center)
-            self.createMarker(lat, lng)
+            self.addMarker(center)
 
             self.canvas.setCenter(center)
             self.canvas.zoomScale(591657550.5 / (2 ** self.zoom_level))
@@ -510,7 +495,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             language = response_json.get("language", "")
 
             # Add details to the table
-            self.addRowToTable(w3w_address, lat, lng, nearest_place, country, language, '')
+            self.addRowToTable(w3w_address, lat, lng, nearest_place, country, language)
 
         except GeoCodeException as e:
             iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Critical, duration=2)
