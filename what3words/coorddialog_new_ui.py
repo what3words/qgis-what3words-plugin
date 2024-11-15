@@ -85,18 +85,16 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
         # Connect text change in the input field to suggestions
         self.addLineEdit.textChanged.connect(self.suggestW3W)
-        # Add QListWidget for suggestions, positioned below addLineEdit
         self.listWidget = QListWidget(self.dockWidgetContents)
-        self.listWidget.setVisible(False)  # Hide initially
+        self.listWidget.setVisible(False) 
         self.listWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.listWidget.itemClicked.connect(self.onSuggestionSelected)
 
-        self.inputField.addWidget(self.listWidget, 1, 0, 1, 2)  # Spanning two columns if needed
+        self.inputField.addWidget(self.listWidget, 1, 0, 1, 2)
 
         # Set up the table widget
         self.tableWidget.setColumnCount(7)
         self.tableWidget.setHorizontalHeaderLabels(["what3words", "Latitude", "Longitude", "Nearest Place", "Country", "Language", "Label"])
-        # Set the horizontal header to stretch and fill the table width
         header = self.tableWidget.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
 
@@ -131,7 +129,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.tableWidget.blockSignals(False)  # Re-enable the selection signal
 
     def onTableItemSelected(self):
-        """Zooms into the selected item on the table and briefly flashes the marker."""
+        """Handles the table row selection, updating markers without zooming."""
         selected_items = self.tableWidget.selectedItems()
         if not selected_items:
             return
@@ -141,8 +139,19 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         lat = float(self.tableWidget.item(row, 1).text())
         lon = float(self.tableWidget.item(row, 2).text())
 
-        # Zoom to the selected location
-        self.zoomToLocation(lat, lon)
+        # Convert coordinates to map CRS
+        point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
+
+        # Clear existing markers if Show All Markers is not checked
+        if not self.showAllMarkersCheckBox.isChecked():
+            for marker in self.storedMarkers:
+                self.canvas.scene().removeItem(marker)
+            self.storedMarkers = [marker for marker in self.storedMarkers if marker.center() != point_map_crs]
+
+        # Add marker for the selected row
+        self.addMarker(point_map_crs)
+        self.flashMarker(point_map_crs)
+        self.canvas.refresh()
 
     def get_map_coordinate_from_lat_lon(self, lat, lon):
         epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
@@ -154,36 +163,14 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         point_map_crs = transform.transform(point_wgs84)
         return point_map_crs
 
-    def zoomToLocation(self, lat, lon):
-        """Transforms WGS84 coordinates to the map's CRS, zooms in, and flashes a marker."""
-        # Define WGS84 and current map CRS
-        point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
-
-        # Center map on the transformed point and set a zoom level
-        self.canvas.setCenter(point_map_crs)
-        self.canvas.zoomScale(500)  # Adjust scale for close-up view
-        self.canvas.refresh()
-
-        # If showAllMarkersCheckBox is unchecked, check if the location is different
-        if not self.showAllMarkersCheckBox.isChecked():
-            if self.last_marker_coords != (lat, lon):
-                # Clear previous markers and add a new marker for the selected item
-                self.clearMarkers()
-                self.addMarker(point_map_crs)
-                self.flashMarker(point_map_crs)
-                # Update the last_marker_coords to the current selection
-                self.last_marker_coords = (lat, lon)
-        else:
-            self.flashMarker(point_map_crs)
-        
     def flashMarker(self, point):
         """Adds a temporary marker that flashes briefly on the map."""
         marker = QgsVertexMarker(self.canvas)
         marker.setCenter(point)
         marker.setIconType(QgsVertexMarker.ICON_CROSS)
         marker.setColor(Qt.yellow)
-        marker.setIconSize(20)
-        marker.setPenWidth(4)
+        marker.setIconSize(30)
+        marker.setPenWidth(6)
 
         # Remove the marker after a short delay
         QTimer.singleShot(1000, lambda: self.canvas.scene().removeItem(marker))
@@ -470,9 +457,10 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             lng = float(response_json["coordinates"]["lng"])
 
             # Convert coordinates to map CRS
-            center = self.get_map_coordinate_from_lat_lon(lat, lon)
+            center = self.get_map_coordinate_from_lat_lon(lat, lng)
             
-            self.addMarker(center)
+            # self.addMarker(center)
+            self.createMarker(lat, lng)
 
             self.canvas.setCenter(center)
             self.canvas.zoomScale(591657550.5 / (2 ** self.zoom_level))
@@ -640,3 +628,4 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                 last_marker = self.storedMarkers[-1]  # Get the last marker in the list
                 if last_marker is not None:
                     self.canvas.scene().addItem(last_marker)
+    
