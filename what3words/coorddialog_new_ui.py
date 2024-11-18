@@ -32,7 +32,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.mapToolForMapsite = W3WMapTool(self.canvas, self)
         self.mapToolForMapsite.w3wAddressCapturedForMapsite.connect(self.openMapsiteInBrowser)
         self.gridManager = None 
-        self.allowClosing = True
+        self.storedMarkers = []  # List to store markers on the map
         apiKey = pluginSetting("apiKey", namespace="what3words")
         addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
@@ -190,6 +190,9 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         """Remove selected entries from the coordinate table and corresponding markers from the map."""
         indices = [x.row() for x in self.tableWidget.selectionModel().selectedRows()]
         if not indices:
+            iface.messageBar().pushMessage(
+                "what3words", "No rows selected to delete.", level=Qgis.Warning, duration=2
+            )   
             return
 
         # Confirmation dialog for deletion
@@ -232,10 +235,16 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
     def clearAllRows(self):
         """
-        Deletes all rows from the table.
+        Deletes all rows from the table, but only if there are records.
         """
+        if self.tableWidget.rowCount() == 0:
+            iface.messageBar().pushMessage(
+                "what3words", "No records to clear.", level=Qgis.Warning, duration=2
+            )
+            return  # Exit the function early
+
         reply = QMessageBox.question(
-            self, 'Message', 'Are your sure you want to delete all locations?',
+            self, 'Message', 'Are you sure you want to delete all locations?',
             QMessageBox.Yes, QMessageBox.No
         )
 
@@ -660,17 +669,4 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                 if last_marker is not None:
                     self.canvas.scene().addItem(last_marker)
 
-    def closeEvent(self, event):
-            """
-            Prevents closing the dock widget if not explicitly allowed.
-            Updates the button state when closed.
-            """
-            if self.allowClosing:
-                # Reset the button state to unchecked when closed
-                if hasattr(self, 'coordDialogAction') and self.coordDialogAction:
-                    self.coordDialogAction.setChecked(False)
-                super(W3WCoordInputDialog, self).closeEvent(event)
-            else:
-                event.ignore()  # Block the closing action
-                
         
