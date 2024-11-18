@@ -6,12 +6,13 @@ from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QSizePolicy, QApplica
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 
-from qgis.core import Qgis, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsFeature, QgsGeometry
+from qgis.core import Qgis, QgsWkbTypes, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsFeature, QgsGeometry, QgsRectangle
 from qgis.gui import QgsVertexMarker
 from qgis.utils import iface
 
 from qgiscommons2.settings import pluginSetting
 from qgiscommons2.gui.settings import ConfigDialog
+from qgis.gui import QgsRubberBand
 
 from what3words.maptool import W3WMapTool
 from what3words.grid import W3WGridManager
@@ -157,7 +158,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
         # Add marker for the selected row
         self.addMarker(point_map_crs)
-        self.flashMarker(point_map_crs)
+        self.highlight(point_map_crs)
         self.canvas.refresh()
 
     def get_map_coordinate_from_lat_lon(self, lat, lon):
@@ -170,21 +171,42 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         point_map_crs = transform.transform(point_wgs84)
         return point_map_crs
 
-    def flashMarker(self, point):
-        """Adds a temporary marker that flashes briefly on the map."""
-        if not hasattr(self, 'flashMarkerInstance'):
-            self.flashMarkerInstance = QgsVertexMarker(self.canvas)
-            self.flashMarkerInstance.setIconType(QgsVertexMarker.ICON_CROSS)
-            self.flashMarkerInstance.setColor(Qt.yellow)
-            self.flashMarkerInstance.setIconSize(30)
-            self.flashMarkerInstance.setPenWidth(6)
+    def highlight(self, point):
+        """
+        Highlights the selected point on the map by drawing cross lines.
+        """
+        currExt = self.canvas.extent()
 
-        self.flashMarkerInstance.setCenter(point)
-        self.flashMarkerInstance.show()
+        # Create points for horizontal and vertical lines
+        leftPt = QgsPointXY(currExt.xMinimum(), point.y())
+        rightPt = QgsPointXY(currExt.xMaximum(), point.y())
+        topPt = QgsPointXY(point.x(), currExt.yMaximum())
+        bottomPt = QgsPointXY(point.x(), currExt.yMinimum())
 
-        # Hide the marker after a short delay
-        QTimer.singleShot(1000, self.flashMarkerInstance.hide)
-        self.canvas.refresh()
+        # Create horizontal and vertical line geometries
+        horizLine = QgsGeometry.fromPolylineXY([leftPt, rightPt])
+        vertLine = QgsGeometry.fromPolylineXY([topPt, bottomPt])
+
+        # Ensure the rubber band is initialized
+        if not hasattr(self, 'crossRb') or self.crossRb is None:
+            self.crossRb = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
+            self.crossRb.setColor(Qt.red)
+            self.crossRb.setWidth(2)
+
+        # Reset and add new geometries
+        self.crossRb.reset(QgsWkbTypes.LineGeometry)
+        self.crossRb.addGeometry(horizLine, None)
+        self.crossRb.addGeometry(vertLine, None)
+
+        # Automatically remove the highlight after a delay
+        QTimer.singleShot(700, self.resetRubberbands)
+
+    def resetRubberbands(self):
+        """
+        Resets the rubber band used for highlighting.
+        """
+        if hasattr(self, 'crossRb') and self.crossRb:
+            self.crossRb.reset()
 
     def deleteSelectedRow(self):
         """Remove selected entries from the coordinate table and corresponding markers from the map."""
@@ -471,7 +493,6 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.listWidget.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # Show vertical scrollbar if necessary
         self.listWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
-
     def onSuggestionSelected(self, item):
         """Handles the event when a suggestion is selected from the list."""
         w3w_address = item.text().split(',')[0].replace("///", "")
@@ -639,12 +660,13 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
     
     def removeMarkers(self):
         """
-        Removes all markers from the map view and clears the storedMarkers list.
+        Removes all markers from the map and clears the storedMarkers list.
         """
-        for marker in self.storedMarkers:
-            if marker is not None:
-                self.canvas.scene().removeItem(marker)
-        self.storedMarkers.clear()
+        if hasattr(self, 'storedMarkers') and self.storedMarkers:
+            for marker in self.storedMarkers:
+                if marker:
+                    self.canvas.scene().removeItem(marker)
+            self.storedMarkers.clear()                 
 
     def toggleMarkerDisplay(self):
         """
@@ -669,4 +691,34 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                 if last_marker is not None:
                     self.canvas.scene().addItem(last_marker)
 
-        
+    def closeEvent(self, event):
+        """
+        Overridden closeEvent to handle the closing of the dock widget.
+        Ensures the map tools, grid button, table selection, and markers are unset when the dock widget is closed.
+        """
+        # Unset the map tools
+        self.canvas.unsetMapTool(self.mapTool)
+        self.canvas.unsetMapTool(self.mapToolForMapsite)
+
+        # Uncheck the ZoomToAction button
+        if hasattr(self, 'zoomToAction') and self.zoomToAction:
+            self.zoomToAction.setChecked(False)
+
+        # Uncheck and disable the grid button if enabled
+        if hasattr(self, 'viewGridButton') and self.viewGridButton.isChecked():
+            self.viewGridButton.setChecked(False)
+            if self.gridManager:
+                self.gridManager.enableGrid(False)  # Disable the grid if it's enabled
+
+        # Clear table selection
+        if hasattr(self, 'tableWidget') and self.tableWidget:
+            self.tableWidget.clearSelection()
+
+        # Hide all markers
+        if hasattr(self, 'storedMarkers') and self.storedMarkers:
+            self.clearMarkers()
+
+        # Call the base class closeEvent
+        super(W3WCoordInputDialog, self).closeEvent(event)
+
+

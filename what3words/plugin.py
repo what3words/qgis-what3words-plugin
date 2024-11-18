@@ -53,6 +53,7 @@ class W3WTools(object):
             self.zoomToAction = QAction(zoomToIcon, "Discover what3words address", self.iface.mainWindow())
             self.zoomToAction.triggered.connect(self.showW3WCoordInputDialog)
             self.zoomToAction.setCheckable(True)
+            self.zoomToDialog.zoomToAction = self.zoomToAction  # Pass the action to the dock widget
             self.iface.addToolBarIcon(self.zoomToAction)
             self.iface.addPluginToMenu("what3words", self.zoomToAction)
         
@@ -145,15 +146,16 @@ class W3WTools(object):
     def showW3WCoordInputDialog(self):
         """
         Shows the 'Zoom to what3words address' dock widget.
+        Ensures the associated button remains consistent with the visibility state.
         """
         self.warningAPIsettings()
-        
+
         if not self.zoomToDialog.isVisible():
             self.zoomToDialog.show()
-            self.zoomToAction.setChecked(True)
+            self.zoomToAction.setChecked(True)  # Ensure the button is checked
         else:
-            # Prevent toggling off
-            self.zoomToAction.setChecked(True)
+            self.zoomToDialog.hide()
+            self.zoomToAction.setChecked(False)  # Ensure the button is unchecked
 
     def unload(self):
         """
