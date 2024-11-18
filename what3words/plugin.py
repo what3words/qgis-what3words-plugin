@@ -42,6 +42,10 @@ class W3WTools(object):
         readSettings()
 
     def initGui(self):
+        # Add the dock widget for zooming to w3w
+        self.zoomToDialog = W3WCoordInputDialog(self.iface.mapCanvas(), self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.zoomToDialog)
+        self.zoomToDialog.hide()
 
         # Add zoom to what3words address button
         if not hasattr(self, 'zoomToAction'):
@@ -56,10 +60,10 @@ class W3WTools(object):
         if not hasattr(self, 'toolAction'):
             mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w_marker.svg"))
             self.toolAction = QAction(mapToolIcon, "View what3words address", self.iface.mainWindow())
-            self.toolAction.triggered.connect(self.toggleTool)
+            self.toolAction.triggered.connect(self.zoomToDialog.toggleCaptureTool)
             self.toolAction.setCheckable(True)
             # self.iface.addToolBarIcon(self.toolAction)
-            self.iface.addPluginToMenu("what3words", self.toolAction)
+            # self.iface.addPluginToMenu("what3words", self.toolAction)
 
 
         # Add grid toggle button with dynamic text updates
@@ -67,9 +71,18 @@ class W3WTools(object):
             gridIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "grid_red.svg"))
             self.gridToggleAction = QAction(gridIcon, "View Grid", self.iface.mainWindow())
             self.gridToggleAction.setCheckable(True)
-            self.gridToggleAction.toggled.connect(self.toggleGrid)
+            self.gridToggleAction.toggled.connect(self.zoomToDialog.toggleGrid)
             # self.iface.addToolBarIcon(self.gridToggleAction)
-            self.iface.addPluginToMenu("what3words", self.gridToggleAction)
+            # self.iface.addPluginToMenu("what3words", self.gridToggleAction)
+
+         # Add open mapsite button
+        if not hasattr(self, 'openMapsiteAction'):
+            mapsiteIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w_search.svg"))
+            self.openMapsiteAction = QAction(mapsiteIcon, "Open Mapsite", self.iface.mainWindow())
+            self.openMapsiteAction.triggered.connect(self.zoomToDialog.toggleMapToolForMapsite)
+            self.openMapsiteAction.setCheckable(True)
+            # self.iface.addToolBarIcon(self.openMapsiteAction)
+            # self.iface.addPluginToMenu("what3words", self.openMapsiteAction)
 
         # Add settings button to toolbar
         if not hasattr(self, 'settingsAction'):
@@ -78,11 +91,6 @@ class W3WTools(object):
             self.settingsAction.triggered.connect(self.showSettingsDialog)
             # self.iface.addToolBarIcon(self.settingsAction)
             self.iface.addPluginToMenu("what3words", self.settingsAction)
-
-        # Add the dock widget for zooming to w3w
-        self.zoomToDialog = W3WCoordInputDialog(self.iface.mapCanvas(), self.iface.mainWindow())
-        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.zoomToDialog)
-        self.zoomToDialog.hide()
 
         # Add settings, help, and about menus
         addHelpMenu("what3words", self.iface.addPluginToMenu)
@@ -111,20 +119,14 @@ class W3WTools(object):
 
         # Attempt to open the settings dialog
         self.settingsDialog = ConfigDialog("what3words")
-        # print("Settings Dialog:", self.settingsDialog)  # Add this line to debug
 
         # If openSettingsDialog did not return a valid dialog, handle it with a message
         if self.settingsDialog is None:
             self._showMessage("Error: Could not open settings dialog.", Qgis.Critical)
             return
 
-        # Disable the settings button while dialog is open
         self.settingsAction.setEnabled(False)
-
-        # Ensure the settings button is re-enabled when the dialog is closed
         self.settingsDialog.finished.connect(self.onSettingsDialogClosed)
-
-        # Show the dialog
         self.settingsDialog.show()
 
     def onSettingsDialogClosed(self):
@@ -135,7 +137,7 @@ class W3WTools(object):
         self.settingsDialog = None  # Reset dialog reference
 
     def warningAPIsettings(self):
-        apikey = pluginSetting("apiKey")
+        apikey = pluginSetting("apiKey", namespace="what3words")
         if not apikey:
             self._showMessage('what3words API key is not set. Please set it and try again.', Qgis.Warning)
             return
@@ -146,48 +148,13 @@ class W3WTools(object):
         """
         self.warningAPIsettings()
         
-        if self.zoomToDialog.isHidden():
+        if not self.zoomToDialog.isVisible():
             self.zoomToDialog.show()
-            self._showMessage("Search for a what3words address, e.g. index.home.raft", Qgis.Info)
+            self.zoomToAction.setChecked(True)
         else:
-            self.zoomToDialog.hide()
+            # Prevent toggling off
+            self.zoomToAction.setChecked(True)
 
-    def toggleGrid(self, checked):
-        """
-        Toggles the What3words grid on and off and updates the button text.
-        """
-        self.warningAPIsettings()
-        
-        if self.gridManager is None:
-            self.gridManager = W3WGridManager(self.iface.mapCanvas())
-
-        if checked:
-            self.gridManager.enableGrid(True)
-            self.gridToggleAction.setText("Hide Grid")
-            self._showMessage("what3words Grid enabled.", Qgis.Info)
-        else:
-            self.gridManager.enableGrid(False)
-            self.gridToggleAction.setText("View Grid")
-            self._showMessage("what3words Grid disabled.", Qgis.Info)
-
-    def toggleTool(self):
-        """
-        Activates or deactivates the what3words map tool for converting map clicks to 3-word addresses.
-        """
-        self.warningAPIsettings()
-
-        # Toggle the map tool on or off based on its current state
-        if self.iface.mapCanvas().mapTool() == self.mapTool:
-            self.iface.mapCanvas().unsetMapTool(self.mapTool)
-            self.toolAction.setChecked(False)
-        else:
-            if not self.mapTool:
-                self.mapTool = W3WMapTool(self.iface.mapCanvas())
-            
-            self.iface.mapCanvas().setMapTool(self.mapTool)
-            self.toolAction.setChecked(True)
-            self._showMessage("View what3words address tool activated. Click on the map to get what3words address.", Qgis.Info)
-     
     def unload(self):
         """
         Cleans up all components when the plugin is unloaded.
@@ -213,6 +180,12 @@ class W3WTools(object):
             self.iface.removeToolBarIcon(self.zoomToAction)
             self.iface.removePluginMenu("what3words", self.zoomToAction)
             del self.zoomToAction
+        
+        # Remove Open Mapsite action
+        if hasattr(self, 'openMapsiteAction'):
+            self.iface.removeToolBarIcon(self.openMapsiteAction)
+            self.iface.removePluginMenu("what3words", self.openMapsiteAction)
+            del self.openMapsiteAction
 
         # Remove settings action if present
         if hasattr(self, 'settingsAction'):

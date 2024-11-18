@@ -1,21 +1,23 @@
+import os
+import csv
+import webbrowser
+
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QSizePolicy, QApplication, QDockWidget, QListWidget, QListWidgetItem, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
+
 from qgis.core import Qgis, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsFeature, QgsGeometry
 from qgis.gui import QgsVertexMarker
 from qgis.utils import iface
+
 from qgiscommons2.settings import pluginSetting
 from qgiscommons2.gui.settings import ConfigDialog
+
 from what3words.maptool import W3WMapTool
 from what3words.grid import W3WGridManager
 from what3words.shared_layer_point import W3WPointLayerManager
 from what3words.w3w import what3words, GeoCodeException
 from what3words.ui.coorddialog_ui import Ui_discoverToWhat3words  # Import the generated UI class
-from what3words.w3w import what3words  # Import the what3words API class
-
-import os
-import csv
-import webbrowser
 ICON_PATH = os.path.join(os.path.dirname(__file__), "icons")
 
 class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
@@ -30,10 +32,9 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.mapToolForMapsite = W3WMapTool(self.canvas, self)
         self.mapToolForMapsite.w3wAddressCapturedForMapsite.connect(self.openMapsiteInBrowser)
         self.gridManager = None 
-        self.storedMarkers = [] 
-        self.last_marker_coords = None
-        apiKey = pluginSetting("apiKey")
-        addressLanguage = pluginSetting("addressLanguage")
+        self.allowClosing = True
+        apiKey = pluginSetting("apiKey", namespace="what3words")
+        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
         
         self.initGui()
@@ -81,9 +82,11 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.addLineEdit.textChanged.connect(self.suggestW3W)
         self.listWidget = QListWidget(self.dockWidgetContents)
         self.listWidget.setVisible(False) 
-        self.listWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.listWidget.itemClicked.connect(self.onSuggestionSelected)
+        self.inputField.setContentsMargins(0, 0, 0, 0)
+        self.inputField.setSpacing(0)
 
+        # Add the listWidget just below the inputField
         self.inputField.addWidget(self.listWidget, 1, 0, 1, 2)
 
         # Set up the table widget
@@ -119,17 +122,18 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)  # Make item read-only
             self.tableWidget.setItem(row_position, col_index, item)
 
+        # Temporarily block the selection signal to prevent triggering onTableItemSelected
+        self.tableWidget.blockSignals(True)
+        self.tableWidget.selectRow(row_position)  # Select the new row
+        self.tableWidget.scrollToItem(self.tableWidget.item(row_position, 0))  # Scroll to the new row
+        self.tableWidget.blockSignals(False)  # Re-enable the selection signal
+
         QApplication.clipboard().setText(w3w_address)
         iface.messageBar().pushMessage(
             "what3words", 
             f"Added '{w3w_address}' to the table and copied to clipboard.", 
             level=Qgis.Success, duration=3
         )
-        # Temporarily block the selection signal to prevent triggering onTableItemSelected
-        self.tableWidget.blockSignals(True)
-        self.tableWidget.selectRow(row_position)  # Select the new row
-        self.tableWidget.scrollToItem(self.tableWidget.item(row_position, 0))  # Scroll to the new row
-        self.tableWidget.blockSignals(False)  # Re-enable the selection signal
     
     def onTableItemSelected(self):
         """Handles the table row selection, updating markers without zooming."""
@@ -168,15 +172,18 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
     def flashMarker(self, point):
         """Adds a temporary marker that flashes briefly on the map."""
-        marker = QgsVertexMarker(self.canvas)
-        marker.setCenter(point)
-        marker.setIconType(QgsVertexMarker.ICON_CROSS)
-        marker.setColor(Qt.yellow)
-        marker.setIconSize(30)
-        marker.setPenWidth(6)
+        if not hasattr(self, 'flashMarkerInstance'):
+            self.flashMarkerInstance = QgsVertexMarker(self.canvas)
+            self.flashMarkerInstance.setIconType(QgsVertexMarker.ICON_CROSS)
+            self.flashMarkerInstance.setColor(Qt.yellow)
+            self.flashMarkerInstance.setIconSize(30)
+            self.flashMarkerInstance.setPenWidth(6)
 
-        # Remove the marker after a short delay
-        QTimer.singleShot(1000, lambda: self.canvas.scene().removeItem(marker))
+        self.flashMarkerInstance.setCenter(point)
+        self.flashMarkerInstance.show()
+
+        # Hide the marker after a short delay
+        QTimer.singleShot(1000, self.flashMarkerInstance.hide)
         self.canvas.refresh()
 
     def deleteSelectedRow(self):
@@ -243,7 +250,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         """
         Activates or deactivates the what3words map tool for capturing map clicks to convert them into 3-word addresses.
         """
-        apiKey = pluginSetting("apiKey")
+        apiKey = pluginSetting("apiKey", namespace="what3words")
         if not apiKey:
             iface.messageBar().pushMessage("what3words", "API key missing. Please set the API key in plugin settings.", level=Qgis.Warning, duration=2)
             self.w3wCaptureButton.setChecked(False)
@@ -266,7 +273,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         """
         Toggles the What3words grid on and off and updates the button's checked state.
         """
-        apiKey = pluginSetting("apiKey")
+        apiKey = pluginSetting("apiKey", namespace="what3words")
         if not apiKey:
             iface.messageBar().pushMessage("what3words", "API key missing. Please set the API key in plugin settings.", level=Qgis.Warning, duration=2)
             self.viewGridButton.setChecked(False)
@@ -296,14 +303,16 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             self.settingsDialog.raise_()
             return
 
-        # Attempt to open the settings dialog
-        self.settingsDialog = ConfigDialog("what3words")
+        # Check if the dialog is already open
+        if not hasattr(self, 'settingsDialog') or self.settingsDialog is None:
+            # Attempt to open the settings dialog
+            self.settingsDialog = ConfigDialog("what3words")
+
+            # Ensure the settings button is re-enabled when the dialog is closed
+            self.settingsDialog.finished.connect(self.onSettingsDialogClosed)
 
         # Disable the settings button while dialog is open
         self.settingsButton.setEnabled(False)
-
-        # Ensure the settings button is re-enabled when the dialog is closed
-        self.settingsDialog.finished.connect(self.onSettingsDialogClosed)
 
         # Show the dialog
         self.settingsDialog.show()
@@ -398,8 +407,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.listWidget.clear()
         self.listWidget.setVisible(False)
 
-        apiKey = pluginSetting("apiKey")
-        addressLanguage = pluginSetting("addressLanguage")
+        apiKey = pluginSetting("apiKey", namespace="what3words")
+        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
 
         if not apiKey:
             iface.messageBar().pushMessage("what3words", "API key missing. Please set the API key in plugin settings.", level=Qgis.Warning, duration=2)
@@ -441,10 +450,18 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
     def adjustSuggestionsListSize(self, num_items):
         """Adjusts the size and styling of the suggestions list."""
-        num_items = min(num_items, 3)
-        total_height = self.listWidget.sizeHintForRow(0) * num_items
+        total_height = 60  # Fixed height of 100px
         self.listWidget.setFixedHeight(total_height)
         self.listWidget.setFixedWidth(self.addLineEdit.width())
+        self.listWidget.setStyleSheet("""
+            QListWidget { background-color: #FFFFFF; color: #000000; padding: 0px; border: 1px solid #E0E0E0; }
+            QListWidget::item { padding: 2px 6px; color: #000000; }
+            QListWidget::item:selected { background-color: #E0E0E0; color: #000000; }
+        """)
+        self.listWidget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.listWidget.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # Show vertical scrollbar if necessary
+        self.listWidget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
 
     def onSuggestionSelected(self, item):
         """Handles the event when a suggestion is selected from the list."""
@@ -456,8 +473,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
     def showW3WPoint(self, selected_text=None):
         """Show the W3W point on the map when a suggestion is selected."""
-        apiKey = pluginSetting("apiKey")
-        addressLanguage = pluginSetting("addressLanguage")
+        apiKey = pluginSetting("apiKey", namespace="what3words")
+        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
 
         try:
@@ -551,7 +568,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
     ## Mapsite handling   
     def toggleMapToolForMapsite(self):
-        apiKey = pluginSetting("apiKey")
+        apiKey = pluginSetting("apiKey", namespace="what3words")
         if not apiKey:
             iface.messageBar().pushMessage("what3words", "API key missing. Please set the API key in plugin settings.", level=Qgis.Warning, duration=2)
             self.openMapsiteButton.setChecked(False)
@@ -642,4 +659,18 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                 last_marker = self.storedMarkers[-1]  # Get the last marker in the list
                 if last_marker is not None:
                     self.canvas.scene().addItem(last_marker)
-    
+
+    def closeEvent(self, event):
+            """
+            Prevents closing the dock widget if not explicitly allowed.
+            Updates the button state when closed.
+            """
+            if self.allowClosing:
+                # Reset the button state to unchecked when closed
+                if hasattr(self, 'coordDialogAction') and self.coordDialogAction:
+                    self.coordDialogAction.setChecked(False)
+                super(W3WCoordInputDialog, self).closeEvent(event)
+            else:
+                event.ignore()  # Block the closing action
+                
+        

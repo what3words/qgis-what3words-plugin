@@ -23,8 +23,8 @@ class W3WMapTool(QgsMapTool):
         self.canvas = canvas
         self.coord_dialog = coord_dialog  # Pass coorddialog instance to access the checkbox
         self.setCursor(Qt.CrossCursor)
-        apiKey = pluginSetting("apiKey")
-        addressLanguage = pluginSetting("addressLanguage")
+        apiKey = pluginSetting("apiKey", namespace="what3words")
+        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
         self.point_layer_manager = W3WPointLayerManager.getInstance()
 
@@ -36,14 +36,6 @@ class W3WMapTool(QgsMapTool):
         canvasCrs = canvas.mapSettings().destinationCrs()
         transform = QgsCoordinateTransform(canvasCrs, self.epsg4326, QgsProject.instance())
         pt4326 = transform.transform(pt.x(), pt.y())
-
-        w3w_info = self.w3w.convertTo3wa(pt4326.y(), pt4326.x())
-
-        # Log or print the API response for debugging
-        if 'words' not in w3w_info or 'coordinates' not in w3w_info:
-            raise ValueError("Missing 'words' or 'coordinates' in API response")
-                
-        return w3w_info, pt4326  # Return both W3W info and transformed point
 
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))

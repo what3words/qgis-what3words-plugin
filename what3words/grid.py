@@ -21,8 +21,9 @@ class W3WGridManager:
 
     def __init__(self, canvas):
         self.canvas = canvas
-        apiKey = pluginSetting("apiKey")
-        self.w3w = what3words(apikey=apiKey)
+        apiKey = pluginSetting("apiKey", namespace="what3words")
+        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
+        self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
         self.grid_layer = None 
         self.grid_enabled = False  
         self.geojson_path = os.path.join(os.path.dirname(__file__), "w3w_grid.geojson")
@@ -31,48 +32,39 @@ class W3WGridManager:
     def enableGrid(self, enable=True):
         """
         Enables or disables the automatic fetching of the W3W grid based on map movement.
-        Does not remove the grid layer when disabled, but stops drawing new grids.
-        If the grid layer is manually removed, it prompts the user to save before disabling.
         """
         self.grid_enabled = enable
 
         if enable:
             try:
-                # Check if the layer still exists or has been manually deleted
+                # Ensure the grid layer exists
                 if not self.grid_layer or not QgsProject.instance().mapLayersByName(self.grid_layer.name()):
-                    # The layer doesn't exist anymore, recreate it
                     self.ensureGridLayer()
 
+                # Connect the signal to fetch and draw the grid
                 iface.mapCanvas().extentsChanged.connect(self.fetchAndDrawW3WGrid)
                 self.fetchAndDrawW3WGrid()
-            
             except RuntimeError as e:
-                iface.messageBar().pushMessage("what3words", 
+                iface.messageBar().pushMessage(
+                    "what3words", 
                     "The grid layer has been manually deleted and cannot be recreated. Please reload the plugin.",
-                    level=Qgis.Critical, duration=5)
-
+                    level=Qgis.Critical, duration=5
+                )
         else:
             try:
-                # Check if the grid layer still exists before disabling
-                if not self.grid_layer or not QgsProject.instance().mapLayersByName(self.grid_layer.name()):
-                    save_choice = iface.messageBar().question(
-                        iface.mainWindow(), 
-                        "Save Grid", 
-                        "The grid layer has been removed. Do you want to save the grid before disabling?",
-                        buttons=QMessageBox.Yes | QMessageBox.No
-                    )
-
-                    if save_choice == QMessageBox.Yes:
-                        self.saveGridToFile()  # This function should export the grid to a file
-                    else:
-                        iface.messageBar().pushMessage("Grid", "Grid layer was lost and not saved.", level=Qgis.Warning)
-
+                # Disconnect the signal if connected
                 iface.mapCanvas().extentsChanged.disconnect(self.fetchAndDrawW3WGrid)
+            except TypeError:
+                # Handle the case where the signal is not connected
+                iface.messageBar().pushMessage(
+                    "what3words", 
+                    "Grid is already disabled or not connected.",
+                    level=Qgis.Warning, duration=2
+                )
 
-            except RuntimeError:
-                iface.messageBar().pushMessage("what3words", 
-                    "Error: The grid layer has been deleted. Please reload the plugin to restore the grid.",
-                    level=Qgis.Critical, duration=5)
+            # Optionally remove the grid layer if desired
+            if self.grid_layer and QgsProject.instance().mapLayersByName(self.grid_layer.name()):
+                self.removeGridLayer()
 
     def saveGridToFile(self):
         """
