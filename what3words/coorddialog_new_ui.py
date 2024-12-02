@@ -171,43 +171,6 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         point_map_crs = transform.transform(point_wgs84)
         return point_map_crs
 
-    def highlight(self, point):
-        """
-        Highlights the selected point on the map by drawing cross lines.
-        """
-        currExt = self.canvas.extent()
-
-        # Create points for horizontal and vertical lines
-        leftPt = QgsPointXY(currExt.xMinimum(), point.y())
-        rightPt = QgsPointXY(currExt.xMaximum(), point.y())
-        topPt = QgsPointXY(point.x(), currExt.yMaximum())
-        bottomPt = QgsPointXY(point.x(), currExt.yMinimum())
-
-        # Create horizontal and vertical line geometries
-        horizLine = QgsGeometry.fromPolylineXY([leftPt, rightPt])
-        vertLine = QgsGeometry.fromPolylineXY([topPt, bottomPt])
-
-        # Ensure the rubber band is initialized
-        if not hasattr(self, 'crossRb') or self.crossRb is None:
-            self.crossRb = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
-            self.crossRb.setColor(Qt.red)
-            self.crossRb.setWidth(2)
-
-        # Reset and add new geometries
-        self.crossRb.reset(QgsWkbTypes.LineGeometry)
-        self.crossRb.addGeometry(horizLine, None)
-        self.crossRb.addGeometry(vertLine, None)
-
-        # Automatically remove the highlight after a delay
-        QTimer.singleShot(700, self.resetRubberbands)
-
-    def resetRubberbands(self):
-        """
-        Resets the rubber band used for highlighting.
-        """
-        if hasattr(self, 'crossRb') and self.crossRb:
-            self.crossRb.reset()
-
     def deleteSelectedRow(self):
         """Remove selected entries from the coordinate table and corresponding markers from the map."""
         indices = [x.row() for x in self.tableWidget.selectionModel().selectedRows()]
@@ -623,6 +586,43 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         iface.messageBar().pushMessage("what3words", f"Opening URL: {w3w_url}", level=Qgis.Info, duration=2)
 
     ## Marker handling
+    def highlight(self, point):
+        """
+        Highlights the selected point on the map by drawing cross lines.
+        """
+        currExt = self.canvas.extent()
+
+        # Create points for horizontal and vertical lines
+        leftPt = QgsPointXY(currExt.xMinimum(), point.y())
+        rightPt = QgsPointXY(currExt.xMaximum(), point.y())
+        topPt = QgsPointXY(point.x(), currExt.yMaximum())
+        bottomPt = QgsPointXY(point.x(), currExt.yMinimum())
+
+        # Create horizontal and vertical line geometries
+        horizLine = QgsGeometry.fromPolylineXY([leftPt, rightPt])
+        vertLine = QgsGeometry.fromPolylineXY([topPt, bottomPt])
+
+        # Ensure the rubber band is initialized
+        if not hasattr(self, 'crossRb') or self.crossRb is None:
+            self.crossRb = QgsRubberBand(self.canvas, QgsWkbTypes.LineGeometry)
+            self.crossRb.setColor(Qt.red)
+            self.crossRb.setWidth(2)
+
+        # Reset and add new geometries
+        self.crossRb.reset(QgsWkbTypes.LineGeometry)
+        self.crossRb.addGeometry(horizLine, None)
+        self.crossRb.addGeometry(vertLine, None)
+
+        # Automatically remove the highlight after a delay
+        QTimer.singleShot(700, self.resetRubberbands)
+
+    def resetRubberbands(self):
+        """
+        Resets the rubber band used for highlighting.
+        """
+        if hasattr(self, 'crossRb') and self.crossRb:
+            self.crossRb.reset()
+
     def addMarker(self, point):
         """
         Adds a marker to the map and stores it in `storedMarkers`.
@@ -691,6 +691,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                 if last_marker is not None:
                     self.canvas.scene().addItem(last_marker)
 
+    ## Dock widget handling
     def closeEvent(self, event):
         """
         Overridden closeEvent to handle the closing of the dock widget.
