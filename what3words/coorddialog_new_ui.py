@@ -2,7 +2,7 @@ import os
 import csv
 import webbrowser
 
-from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QSizePolicy, QApplication, QDockWidget, QListWidget, QListWidgetItem, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QSizePolicy, QApplication, QDockWidget, QListWidget, QListWidgetItem, QFileDialog, QMessageBox, QMenu, QAction
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
 
@@ -37,6 +37,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         apiKey = pluginSetting("apiKey", namespace="what3words")
         addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
         self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
+        self.canvas.extentsChanged.connect(self.updateMarkers)
+        self.canvas.extentsChanged.connect(self.redrawHighlight)
         
         self.initGui()
 
@@ -95,6 +97,10 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.tableWidget.setHorizontalHeaderLabels(["what3words", "Latitude", "Longitude", "Nearest Place", "Country", "Language"])
         header = self.tableWidget.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
+       
+        # Enable custom context menu for the table widget
+        self.tableWidget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tableWidget.customContextMenuRequested.connect(self.showTableContextMenu)
 
         # Handle dark mode styling
         self.handleDarkMode()
@@ -135,9 +141,9 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             f"Added '{w3w_address}' to the table and copied to clipboard.", 
             level=Qgis.Success, duration=3
         )
-    
+
     def onTableItemSelected(self):
-        """Handles the table row selection, updating markers without zooming."""
+        """Handles the table row selection, updating markers to show only the selected row if Show All Markers is unchecked."""
         selected_items = self.tableWidget.selectedItems()
         if not selected_items:
             return
@@ -150,15 +156,16 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         # Convert coordinates to map CRS
         point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
 
-        # Clear existing markers if Show All Markers is not checked
+        # If Show All Markers is unchecked, clear all markers and add only the selected one
         if not self.showAllMarkersCheckBox.isChecked():
             for marker in self.storedMarkers:
                 self.canvas.scene().removeItem(marker)
-            self.storedMarkers = [marker for marker in self.storedMarkers if marker.center() != point_map_crs]
+            self.storedMarkers.clear()
+            self.addMarker(point_map_crs)  # Add only the marker for the selected row
 
-        # Add marker for the selected row
-        self.addMarker(point_map_crs)
+        # Highlight and center the selected point
         self.highlight(point_map_crs)
+        self.canvas.setCenter(point_map_crs)
         self.canvas.refresh()
 
     def get_map_coordinate_from_lat_lon(self, lat, lon):
@@ -239,6 +246,76 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             self.tableWidget.setRowCount(0)
             self.tableWidget.blockSignals(False)
     
+    ## Context menu handling
+    def showTableContextMenu(self, position):
+        """Shows a custom context menu when right-clicking the table."""
+        menu = QMenu(self)
+
+        # Add actions to the context menu
+        selectAllAction = QAction("Select All", self)
+        selectAllAction.triggered.connect(self.selectAllRows)
+        menu.addAction(selectAllAction)
+
+        copyCellAction = QAction("Copy Cell Content", self)
+        copyCellAction.triggered.connect(self.copyCellContent)
+        menu.addAction(copyCellAction)
+
+        zoomToFeatureAction = QAction("Zoom to Feature", self)
+        zoomToFeatureAction.triggered.connect(self.zoomToSelectedFeature)
+        menu.addAction(zoomToFeatureAction)
+
+        flashFeatureAction = QAction("Flash Feature", self)
+        flashFeatureAction.triggered.connect(self.flashSelectedFeature)
+        menu.addAction(flashFeatureAction)
+
+        # Show the context menu at the cursor position
+        menu.exec_(self.tableWidget.viewport().mapToGlobal(position))
+
+    # Define actions for context menu
+    def selectAllRows(self):
+        """Selects all rows in the table."""
+        self.tableWidget.selectAll()
+
+    def copyCellContent(self):
+        """Copies the content of the selected cell to the clipboard."""
+        selected_item = self.tableWidget.currentItem()
+        if selected_item:
+            QApplication.clipboard().setText(selected_item.text())
+            iface.messageBar().pushMessage("Copied", "Cell content copied to clipboard.", level=Qgis.Success, duration=2)
+
+    def zoomToSelectedFeature(self):
+        """Zooms to the feature associated with the selected row."""
+        selected_items = self.tableWidget.selectedItems()
+        if not selected_items:
+            iface.messageBar().pushMessage("No Selection", "Please select a row.", level=Qgis.Warning, duration=2)
+            return
+
+        row = selected_items[0].row()
+        lat = float(self.tableWidget.item(row, 1).text())
+        lon = float(self.tableWidget.item(row, 2).text())
+        center = self.get_map_coordinate_from_lat_lon(lat, lon)
+
+        # Zoom to the feature
+        extent = QgsRectangle(center.x() - 0.001, center.y() - 0.001, center.x() + 0.001, center.y() + 0.001)
+        self.canvas.setExtent(extent)
+        self.canvas.zoomScale(1000)  # Set scale to 1:1000
+        self.canvas.refresh()
+
+    def flashSelectedFeature(self):
+        """Flashes the feature associated with the selected row."""
+        selected_items = self.tableWidget.selectedItems()
+        if not selected_items:
+            iface.messageBar().pushMessage("No Selection", "Please select a row.", level=Qgis.Warning, duration=2)
+            return
+
+        row = selected_items[0].row()
+        lat = float(self.tableWidget.item(row, 1).text())
+        lon = float(self.tableWidget.item(row, 2).text())
+        center = self.get_map_coordinate_from_lat_lon(lat, lon)
+
+        # Flash the feature
+        self.highlight(center)
+
     ## Capture tool handling
     def toggleCaptureTool(self):
         """
@@ -590,6 +667,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         """
         Highlights the selected point on the map by drawing cross lines.
         """
+        self.highlighted_point = point  # Store the highlighted point for redraws
+
         currExt = self.canvas.extent()
 
         # Create points for horizontal and vertical lines
@@ -623,6 +702,13 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         if hasattr(self, 'crossRb') and self.crossRb:
             self.crossRb.reset()
 
+    def redrawHighlight(self):
+        """
+        Redraws the highlight cross when the map view changes.
+        """
+        if hasattr(self, 'highlighted_point') and self.highlighted_point:
+            self.highlight(self.highlighted_point)
+            
     def addMarker(self, point):
         """
         Adds a marker to the map and stores it in `storedMarkers`.
@@ -640,6 +726,27 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.canvas.scene().addItem(marker) 
         self.storedMarkers.append(marker)
 
+    def updateMarkers(self):
+        """
+        Refreshes the positions of the markers to ensure they stay accurate
+        during map panning or zooming.
+        """
+        if not self.showAllMarkersCheckBox.isChecked():
+            return  # Do nothing if Show All Markers is unchecked
+
+        # Clear all current markers
+        for marker in self.storedMarkers:
+            self.canvas.scene().removeItem(marker)
+
+        self.storedMarkers.clear()
+
+        # Re-add all markers based on the table data
+        for row in range(self.tableWidget.rowCount()):
+            lat = float(self.tableWidget.item(row, 1).text())
+            lon = float(self.tableWidget.item(row, 2).text())
+            point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
+            self.addMarker(point_map_crs)
+        
     def clearMarkers(self):
         """
         Hides all markers from the map view without removing them from storedMarkers,
@@ -670,27 +777,26 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
     def toggleMarkerDisplay(self):
         """
-        Toggle showing all markers on the map based on the Show All Markers checkbox state.
-        - If checked, add markers for all records in the table to the map.
-        - If unchecked, remove all markers from the map except the marker from the selected row.
+        Toggles the display of markers based on the Show All Markers checkbox state.
         """
         if self.showAllMarkersCheckBox.isChecked():
             # Show all markers
-            for marker in self.storedMarkers:
-                if marker is not None:
-                    self.canvas.scene().addItem(marker)
+            self.updateMarkers()
         else:
-            # Hide all markers first
+            # Hide all markers and show only the selected one if any row is selected
             for marker in self.storedMarkers:
-                if marker is not None:
-                    self.canvas.scene().removeItem(marker)
+                self.canvas.scene().removeItem(marker)
+            self.storedMarkers.clear()
 
-            # Show only the last marker
-            if self.storedMarkers:
-                last_marker = self.storedMarkers[-1]  # Get the last marker in the list
-                if last_marker is not None:
-                    self.canvas.scene().addItem(last_marker)
-
+            # Check if a row is selected in the table
+            selected_items = self.tableWidget.selectedItems()
+            if selected_items:
+                row = selected_items[0].row()
+                lat = float(self.tableWidget.item(row, 1).text())
+                lon = float(self.tableWidget.item(row, 2).text())
+                point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
+                self.addMarker(point_map_crs)  # Add marker only for the selected row
+    
     ## Dock widget handling
     def closeEvent(self, event):
         """
@@ -700,6 +806,10 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         # Unset the map tools
         self.canvas.unsetMapTool(self.mapTool)
         self.canvas.unsetMapTool(self.mapToolForMapsite)
+
+        # Disconnect the extentsChanged signal
+        self.canvas.extentsChanged.disconnect(self.updateMarkers)
+        self.canvas.extentsChanged.disconnect(self.redrawHighlight)
 
         # Uncheck the ZoomToAction button
         if hasattr(self, 'zoomToAction') and self.zoomToAction:
