@@ -41,14 +41,16 @@ class W3WMapTool(QgsMapTool):
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
             w3w_info = self.w3w.convertTo3wa(pt4326.y(), pt4326.x())
 
-            # Log or print the API response for debugging
+            # Validate the API response
             if 'words' not in w3w_info or 'coordinates' not in w3w_info:
-                raise ValueError("Missing 'words' or 'coordinates' in API response")
-                
-            return w3w_info, pt4326  # Return both W3W info and transformed point
+                raise GeoCodeException("Invalid API response: missing 'words' or 'coordinates'.")
+
+
+            return w3w_info, pt4326
         except GeoCodeException as e:
-            # Directly use the error message provided by GeoCodeException
+            # Show the API error to the user
             iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=2)
+            return None, pt4326  # Return None for w3w_info and the transformed point
         finally:
             QApplication.restoreOverrideCursor()
 
@@ -59,12 +61,14 @@ class W3WMapTool(QgsMapTool):
         """
         pt = self.toMapCoordinates(e.pos())
         self.w3wAddressCaptured.emit(pt)
-        
+
         try:
             w3w_info, pt4326 = self.toW3W(pt)  # Get W3W info and transformed point
-            if w3w_info and 'words' in w3w_info:
-                # Emit the new signal for mapsite with the 3WA
-                self.w3wAddressCapturedForMapsite.emit(w3w_info['words'])
+            if not w3w_info:
+                return
+
+            # Emit the new signal for mapsite with the 3WA
+            self.w3wAddressCapturedForMapsite.emit(w3w_info['words'])
 
             # Add the marker on the map at the selected point
             self.coord_dialog.addMarker(pt)

@@ -343,7 +343,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         # Check if the new layer was created successfully
         if not new_layer:
             iface.messageBar().pushMessage(
-                "what3words", "Failed to create a new layer. Please try again.", level=Qgis.Critical, duration=3
+                "what3words", "Failed to create a new layer. Please try again.", level=Qgis.Warning, duration=2
             )
             return
 
@@ -490,7 +490,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             self.canvas.refresh()
 
         except GeoCodeException as e:
-            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Critical, duration=2)
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=2)
         finally:
             QApplication.restoreOverrideCursor()        
     
@@ -508,7 +508,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             self.addRowToTable(w3w_address, lat, lng, nearest_place, country, language)
 
         except GeoCodeException as e:
-            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Critical, duration=2)
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=2)
     
     # Bounding box handling
     def getBoundingBox(self):
