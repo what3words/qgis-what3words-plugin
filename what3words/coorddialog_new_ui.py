@@ -52,6 +52,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.clearMarkersButton.setIcon(QIcon(':/images/themes/default/mIconClearText.svg'))
         self.deleteSelectedButton.setIcon(QIcon(':/images/themes/default/mActionDeleteSelected.svg'))
         self.clearAll.setIcon(QIcon(":images/themes/default/mActionDeselectAll.svg"))
+        self.importFile.setIcon(QIcon(':/images/themes/default/mActionFileOpen.svg'))
 
         # Connect signals from UI elements to the respective functions
         self.w3wCaptureButton.clicked.connect(self.toggleCaptureTool)
@@ -59,6 +60,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
         self.viewGridButton.clicked.connect(self.toggleGrid)
         self.viewGridButton.setCheckable(True)
+
+        self.importFile.clicked.connect(self.importCsv)
 
         self.saveToFileButton.clicked.connect(self.saveToFile)
         # self.saveToFileButton.setCheckable(False)
@@ -246,6 +249,53 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             self.tableWidget.setRowCount(0)
             self.tableWidget.blockSignals(False)
     
+    def importCsv(self):
+        """
+        Imports a CSV file, validates fields, and populates the table and map.
+        """
+        # Open file dialog to select CSV
+        file_dialog = QFileDialog()
+        file_dialog.setNameFilter("CSV Files (*.csv)")
+        if not file_dialog.exec_():
+            return
+        csv_path = file_dialog.selectedFiles()[0]
+
+        try:
+            # Read the CSV file
+            with open(csv_path, 'r') as csv_file:
+                reader = csv.DictReader(csv_file)
+                if 'what3words' not in reader.fieldnames and ('latitude' not in reader.fieldnames or 'longitude' not in reader.fieldnames):
+                    QMessageBox.warning(self, "Error", "CSV must contain 'what3words' or 'latitude' and 'longitude' fields.")
+                    return
+                
+                # Process each row
+                for row in reader:
+                    if 'what3words' in row and row['what3words'].strip():
+                        # Use what3words field to fetch data
+                        self.fetchAndDisplayDetails(row['what3words'])
+                    elif 'latitude' in row and 'longitude' in row and row['latitude'].strip() and row['longitude'].strip():
+                        # Use latitude and longitude to fetch data
+                        lat = float(row['latitude'])
+                        lon = float(row['longitude'])
+                        response = self.w3w.convertTo3wa(lat, lon)
+                        self.addRowToTable(
+                            w3w_address=response['words'],
+                            lat=lat,
+                            lon=lon,
+                            nearest_place=response.get('nearestPlace', ''),
+                            country=response.get('country', ''),
+                            language=response.get('language', '')
+                        )
+                        point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
+                        self.addMarker(point_map_crs)
+                    else:
+                        # Skip invalid rows
+                        iface.messageBar().pushMessage(
+                            "what3words", "Skipping invalid row in CSV.", level=Qgis.Warning, duration=2
+                        )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to import CSV: {str(e)}")
+            
     ## Context menu handling
     def showTableContextMenu(self, position):
         """Shows a custom context menu when right-clicking the table."""

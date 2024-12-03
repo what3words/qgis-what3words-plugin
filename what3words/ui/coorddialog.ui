@@ -175,7 +175,7 @@
        </spacer>
       </item>
       <item>
-       <widget class="QGroupBox" name="table_management">
+       <widget class="QGroupBox" name="table_management_group">
         <property name="font">
          <font>
           <family>Microsoft Sans Serif</family>
@@ -191,7 +191,7 @@
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
-        <layout class="QHBoxLayout" name="table_management_2">
+        <layout class="QHBoxLayout" name="table_management">
          <property name="leftMargin">
           <number>2</number>
          </property>
@@ -205,6 +205,28 @@
           <number>2</number>
          </property>
          <item>
+          <widget class="QToolButton" name="importFile">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Import what3words/coordinates list</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+           <property name="popupMode">
+            <enum>QToolButton::InstantPopup</enum>
+           </property>
+           <property name="autoRaise">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QToolButton" name="saveToFileButton">
            <property name="minimumSize">
             <size>
@@ -213,7 +235,7 @@
             </size>
            </property>
            <property name="toolTip">
-            <string>Save to File</string>
+            <string>Save what3words Address List</string>
            </property>
            <property name="text">
             <string>...</string>
