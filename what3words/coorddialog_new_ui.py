@@ -3,6 +3,8 @@ import re
 import csv
 import webbrowser
 
+import urllib
+
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QSizePolicy, QApplication, QDockWidget, QListWidget, QListWidgetItem, QFileDialog, QMessageBox, QMenu, QAction
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QIcon
@@ -46,14 +48,14 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
     def initGui(self):
         self.w3wCaptureButton.setIcon(QIcon(os.path.join(ICON_PATH, "w3w_marker.svg")))
         self.viewGridButton.setIcon(QIcon(os.path.join(ICON_PATH, "grid_red.svg")))
-        self.saveToFileButton.setIcon(QIcon(':/images/themes/default/mActionFileSave.svg'))
         self.openMapsiteButton.setIcon(QIcon(os.path.join(ICON_PATH, "w3w_search.svg")))
-        self.settingsButton.setIcon(QIcon(':/images/themes/default/mActionOptions.svg'))
+        self.importFile.setIcon(QIcon(':/images/themes/default/mActionFileOpen.svg'))
+        self.saveToFileButton.setIcon(QIcon(':/images/themes/default/mActionFileSave.svg'))
         self.createLayerButton.setIcon(QIcon(":images/themes/default/mActionAddOgrLayer.svg"))
-        self.clearMarkersButton.setIcon(QIcon(':/images/themes/default/mIconClearText.svg'))
         self.deleteSelectedButton.setIcon(QIcon(':/images/themes/default/mActionDeleteSelected.svg'))
         self.clearAll.setIcon(QIcon(":images/themes/default/mActionDeselectAll.svg"))
-        self.importFile.setIcon(QIcon(':/images/themes/default/mActionFileOpen.svg'))
+        self.clearMarkersButton.setIcon(QIcon(':/images/themes/default/mIconClearText.svg'))
+        self.settingsButton.setIcon(QIcon(':/images/themes/default/mActionOptions.svg'))
 
         # Connect signals from UI elements to the respective functions
         self.w3wCaptureButton.clicked.connect(self.toggleCaptureTool)
@@ -265,7 +267,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         # Define regex patterns for identifying column names
         w3w_pattern = re.compile(r'(what3words|3[ _-]?word[ _-]?address|w3w)', re.IGNORECASE)
         lat_pattern = re.compile(r'(latitude|lat)', re.IGNORECASE)
-        lon_pattern = re.compile(r'(longitude|lon)', re.IGNORECASE)
+        lon_pattern = re.compile(r'(longitude|lon|lng)', re.IGNORECASE)
 
         try:
             # Read the CSV file
@@ -696,7 +698,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
             try:
                 # Open the CSV file for writing
-                with open(file_path, mode='w', newline='') as file:
+                with open(file_path, mode='w', newline='', encoding='utf-8-sig') as file:
                     writer = csv.writer(file)
                     
                     # Write the header
@@ -734,10 +736,25 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             iface.messageBar().pushMessage("what3words", "Open mapsite tool activated. Click on the map to get the what3words address.", level=Qgis.Info, duration=2)
     
     def openMapsiteInBrowser(self, what3words):
-        """Opens the specified what3words address in the browser."""
-        w3w_url = f"https://what3words.com/{what3words}?application=qgis"
+        """
+        Opens the specified what3words address in the browser after validating it.
+        Ensures non-Latin characters are URL-encoded properly.
+        """
+        if not self.w3w.is_valid_3wa:
+            iface.messageBar().pushMessage(
+                "what3words", f"Invalid what3words address: {what3words}",
+                level=Qgis.Warning, duration=3
+            )
+            return
+
+        # URL-encode the what3words address to handle non-Latin characters
+        encoded_w3w = urllib.parse.quote(what3words)
+        w3w_url = f"https://what3words.com/{encoded_w3w}?application=qgis"
         webbrowser.open(w3w_url)
-        iface.messageBar().pushMessage("what3words", f"Opening URL: {w3w_url}", level=Qgis.Info, duration=2)
+        iface.messageBar().pushMessage(
+            "what3words", f"Opening URL: {w3w_url}",
+            level=Qgis.Info, duration=2
+        )
 
     ## Marker handling
     def highlight(self, point):

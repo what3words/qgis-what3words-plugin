@@ -184,7 +184,7 @@ class what3words(object):
         :return: True if valid 3 word address, False otherwise
         """
         if self.is_possible_3wa(text):
-            result = self.w3w.autosuggest(text, n_results=1)  # Check for the top result
+            result = self.autosuggest(text, n_results=1)  # Check for the top result
             if result["suggestions"] and result["suggestions"][0]["words"] == text:
                 return True
         return False
