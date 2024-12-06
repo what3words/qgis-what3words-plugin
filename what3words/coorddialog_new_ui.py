@@ -1,4 +1,5 @@
 import os
+import re
 import csv
 import webbrowser
 
@@ -109,7 +110,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.handleDarkMode()
     
     ## Table handling
-    def addRowToTable(self, w3w_address, lat, lon, nearest_place, country, language):
+    def addRowToTable(self, what3words, lat, lon, nearest_place, country, language):
         """
         Adds a new row to the table with what3words data.
         """
@@ -117,7 +118,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.tableWidget.insertRow(row_position)
         # List of columns with values and editability
         columns = [
-            (w3w_address, False),  # Read-only
+            (what3words, False),  # Read-only
             (str(lat), False),     # Read-only
             (str(lon), False),     # Read-only
             (nearest_place, False),# Read-only
@@ -138,10 +139,10 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.tableWidget.scrollToItem(self.tableWidget.item(row_position, 0))  # Scroll to the new row
         self.tableWidget.blockSignals(False)  # Re-enable the selection signal
 
-        QApplication.clipboard().setText(w3w_address)
+        QApplication.clipboard().setText(what3words)
         iface.messageBar().pushMessage(
             "what3words", 
-            f"Added '{w3w_address}' to the table and copied to clipboard.", 
+            f"Added '{what3words}' to the table and copied to clipboard.", 
             level=Qgis.Success, duration=3
         )
 
@@ -248,10 +249,11 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             self.removeMarkers()
             self.tableWidget.setRowCount(0)
             self.tableWidget.blockSignals(False)
-    
+
     def importCsv(self):
         """
         Imports a CSV file, validates fields, and populates the table and map.
+        Dynamically identifies the field for what3words or coordinates using pattern matching.
         """
         # Open file dialog to select CSV
         file_dialog = QFileDialog()
@@ -260,36 +262,61 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             return
         csv_path = file_dialog.selectedFiles()[0]
 
+        # Define regex patterns for identifying column names
+        w3w_pattern = re.compile(r'(what3words|3[ _-]?word[ _-]?address|w3w)', re.IGNORECASE)
+        lat_pattern = re.compile(r'(latitude|lat)', re.IGNORECASE)
+        lon_pattern = re.compile(r'(longitude|lon)', re.IGNORECASE)
+
         try:
             # Read the CSV file
             with open(csv_path, 'r') as csv_file:
                 reader = csv.DictReader(csv_file)
-                if 'what3words' not in reader.fieldnames and ('latitude' not in reader.fieldnames or 'longitude' not in reader.fieldnames):
-                    QMessageBox.warning(self, "Error", "CSV must contain 'what3words' or 'latitude' and 'longitude' fields.")
+
+                # Normalize and identify the relevant columns
+                w3w_column = next((col for col in reader.fieldnames if w3w_pattern.search(col)), None)
+                lat_column = next((col for col in reader.fieldnames if lat_pattern.search(col)), None)
+                lon_column = next((col for col in reader.fieldnames if lon_pattern.search(col)), None)
+
+                # Validate that we have enough information
+                if not w3w_column and not (lat_column and lon_column):
+                    QMessageBox.warning(
+                        self, "Error",
+                        "CSV must contain either a valid what3words address field "
+                        "(e.g., '3 word address') or both latitude and longitude fields."
+                    )
                     return
-                
+
                 # Process each row
                 for row in reader:
-                    if 'what3words' in row and row['what3words'].strip():
-                        # Use what3words field to fetch data
-                        self.fetchAndDisplayDetails(row['what3words'])
-                    elif 'latitude' in row and 'longitude' in row and row['latitude'].strip() and row['longitude'].strip():
-                        # Use latitude and longitude to fetch data
-                        lat = float(row['latitude'])
-                        lon = float(row['longitude'])
-                        response = self.w3w.convertTo3wa(lat, lon)
-                        self.addRowToTable(
-                            w3w_address=response['words'],
-                            lat=lat,
-                            lon=lon,
-                            nearest_place=response.get('nearestPlace', ''),
-                            country=response.get('country', ''),
-                            language=response.get('language', '')
-                        )
-                        point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
-                        self.addMarker(point_map_crs)
+                    # Handle what3words addresses
+                    if w3w_column and row[w3w_column].strip():
+                        try:
+                            self.fetchAndDisplayDetails(row[w3w_column])
+                        except GeoCodeException as e:
+                            iface.messageBar().pushMessage(
+                                "what3words", f"Error processing row: {str(e)}", level=Qgis.Warning, duration=2
+                            )
+
+                    # Handle latitude and longitude
+                    elif lat_column and lon_column and row[lat_column].strip() and row[lon_column].strip():
+                        try:
+                            lat = float(row[lat_column])
+                            lon = float(row[lon_column])
+                            response = self.w3w.convertTo3wa(lat, lon)
+                            self.addRowToTable(
+                                what3words=response['words'],
+                                lat=lat,
+                                lon=lon,
+                                nearest_place=response.get('nearestPlace', ''),
+                                country=response.get('country', ''),
+                                language=response.get('language', '')
+                            )
+                            self.showMarkerOnMap(lat, lon)
+                        except (ValueError, GeoCodeException) as e:
+                            iface.messageBar().pushMessage(
+                                "what3words", f"Error processing row: {str(e)}", level=Qgis.Warning, duration=2
+                            )
                     else:
-                        # Skip invalid rows
                         iface.messageBar().pushMessage(
                             "what3words", "Skipping invalid row in CSV.", level=Qgis.Warning, duration=2
                         )
@@ -477,7 +504,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         # Loop through each row in the table and save to the layer
         features = []
         for row in range(self.tableWidget.rowCount()):
-            w3w_address = self.tableWidget.item(row, 0).text()
+            what3words = self.tableWidget.item(row, 0).text()
             latitude = float(self.tableWidget.item(row, 1).text())
             longitude = float(self.tableWidget.item(row, 2).text())
             nearest_place = self.tableWidget.item(row, 3).text()
@@ -488,7 +515,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             feature = QgsFeature()
             feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(longitude, latitude)))
             feature.setAttributes([
-                w3w_address,
+                what3words,
                 latitude,
                 longitude,
                 nearest_place,
@@ -585,10 +612,10 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         
     def onSuggestionSelected(self, item):
         """Handles the event when a suggestion is selected from the list."""
-        w3w_address = item.text().split(',')[0].replace("///", "")
-        self.addLineEdit.setText(w3w_address)
+        what3words = item.text().split(',')[0].replace("///", "")
+        self.addLineEdit.setText(what3words)
         self.listWidget.setVisible(False)  # Hide the suggestions list
-        self.fetchAndDisplayDetails(w3w_address)
+        self.fetchAndDisplayDetails(what3words)
         self.showW3WPoint()
 
     def showW3WPoint(self, selected_text=None):
@@ -621,10 +648,10 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         finally:
             QApplication.restoreOverrideCursor()        
     
-    def fetchAndDisplayDetails(self, w3w_address):
+    def fetchAndDisplayDetails(self, what3words):
         """Fetches W3W details for the selected address and displays them in the table."""
         try:
-            response_json = self.w3w.convertToCoordinates(w3w_address)
+            response_json = self.w3w.convertToCoordinates(what3words)
             lat = response_json["coordinates"]["lat"]
             lng = response_json["coordinates"]["lng"]
             nearest_place = response_json.get("nearestPlace", "")
@@ -632,7 +659,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             language = response_json.get("language", "")
 
             # Add details to the table
-            self.addRowToTable(w3w_address, lat, lng, nearest_place, country, language)
+            self.addRowToTable(what3words, lat, lng, nearest_place, country, language)
 
         except GeoCodeException as e:
             iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=2)
@@ -706,9 +733,9 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             self.openMapsiteButton.setChecked(True)
             iface.messageBar().pushMessage("what3words", "Open mapsite tool activated. Click on the map to get the what3words address.", level=Qgis.Info, duration=2)
     
-    def openMapsiteInBrowser(self, w3w_address):
+    def openMapsiteInBrowser(self, what3words):
         """Opens the specified what3words address in the browser."""
-        w3w_url = f"https://what3words.com/{w3w_address}?application=qgis"
+        w3w_url = f"https://what3words.com/{what3words}?application=qgis"
         webbrowser.open(w3w_url)
         iface.messageBar().pushMessage("what3words", f"Opening URL: {w3w_url}", level=Qgis.Info, duration=2)
 

@@ -78,19 +78,19 @@ class W3WCoordInputDialog(QDockWidget):
             if self.w3w.is_possible_3wa(address):
                 self.saveToLayer(address)
 
-    def saveToLayer(self, w3w_address):
+    def saveToLayer(self, what3words):
         """
         Converts the W3W address to coordinates and saves to layer.
         """
         try:
             # Convert address to coordinates and add to the layer
-            response_json = self.w3w.convertToCoordinates(w3w_address)
+            response_json = self.w3w.convertToCoordinates(what3words)
             self.point_layer_manager.addPointFeature(response_json)
 
             # Clear any temporary marker from the canvas
             self.clearMarker()
 
-            iface.messageBar().pushMessage("what3words", f"Address '{w3w_address}' saved to layer.", level=Qgis.Success, duration=3)
+            iface.messageBar().pushMessage("what3words", f"Address '{what3words}' saved to layer.", level=Qgis.Success, duration=3)
 
         except Exception as e:
             iface.messageBar().pushMessage("what3words", f"Error saving to layer: {str(e)}", level=Qgis.Warning, duration=5)

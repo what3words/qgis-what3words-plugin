@@ -43,11 +43,11 @@ def convert_to_coord(values, feature, parent):
     Convert a what3words address to latitude and longitude
 
     <h4>Syntax</h4>
-    <p><b>convert_to_coord(w3w_address[, order='yx', delimiter=', ', crs='EPSG:4326', return_type='separate'])</b></p>
+    <p><b>convert_to_coord(what3words[, order='yx', delimiter=', ', crs='EPSG:4326', return_type='separate'])</b></p>
 
     <h4>Arguments:</h4>
     <ul>
-        <li><i>w3w_address</i> &rarr; The what3words address to convert.</li>
+        <li><i>what3words</i> &rarr; The what3words address to convert.</li>
         <li><i>order</i> (optional) &rarr; 'yx' for latitude, longitude or 'xy' for longitude, latitude. Default is 'yx'.</li>
         <li><i>delimiter</i> (optional) &rarr; Delimiter for string output. Default is ', '. Used if <i>return_type</i> is 'string'.</li>
         <li><i>crs</i> (optional) &rarr; The coordinate reference system of the input coordinates. Default is 'EPSG:4326'.</li>
@@ -70,14 +70,14 @@ def convert_to_coord(values, feature, parent):
         return
     
     try:
-        w3w_address = values[0]
+        what3words = values[0]
         order = values[1] if num_args > 1 else 'yx'
         delimiter = values[2] if num_args > 2 else ', '
         crs = values[3] if num_args > 3 else 'EPSG:4326'
         return_type = values[4] if num_args > 4 else 'separate'
         
         w3w = get_w3w_api()
-        result = w3w.convertToCoordinates(w3w_address)
+        result = w3w.convertToCoordinates(what3words)
         lat = result['coordinates']['lat']
         lon = result['coordinates']['lng']
         
@@ -147,10 +147,10 @@ def change_w3w_language(values, feature, parent):
     Change the language of a what3words address.
 
     <h4>Syntax</h4>
-    <p><b>change_w3w_language( w3w_address, target_language )</b></p>
+    <p><b>change_w3w_language( what3words, target_language )</b></p>
 
     <h4>Arguments</h4>
-    <p><i>w3w_address</i> &rarr; The original what3words address (e.g., 'filled.count.soap').</p>
+    <p><i>what3words</i> &rarr; The original what3words address (e.g., 'filled.count.soap').</p>
     <p><i>target_language</i> &rarr; The 2-letter ISO code for the target language (e.g., 'es' for Spanish).</p>
 
     <h4>Output</h4>
@@ -170,14 +170,14 @@ def change_w3w_language(values, feature, parent):
             parent.setEvalErrorString("Error: what3words address and target language must be provided.")
             return
 
-        w3w_address = values[0]
+        what3words = values[0]
         target_language = values[1]  # Target language code (e.g., 'es', 'fr')
 
         # Get the what3words API key from settings
         w3w = get_w3w_api()
 
         # Step 1: Convert the original w3w address back to coordinates
-        result = w3w.convertToCoordinates(w3w_address)
+        result = w3w.convertToCoordinates(what3words)
         lat = result['coordinates']['lat']
         lon = result['coordinates']['lng']
 
@@ -196,10 +196,10 @@ def autosuggest_w3w(values, feature, parent):
     Get autosuggestions for an incomplete what3words address, allowing additional options for country, focus, bounding box, circle, and polygon.
 
     <h4>Syntax</h4>
-    <p><b>autosuggest_w3w</b>(<i>w3w_address, rank[, country, bbox, circle, polygon, focus]</i>)</p>
+    <p><b>autosuggest_w3w</b>(<i>what3words, rank[, country, bbox, circle, polygon, focus]</i>)</p>
 
     <h4>Arguments</h4>
-    <p><i>w3w_address</i> &rarr; the incomplete what3words address to get suggestions for (e.g., 'filled.count.so').</p>
+    <p><i>what3words</i> &rarr; the incomplete what3words address to get suggestions for (e.g., 'filled.count.so').</p>
     <p><i>rank</i> &rarr; the rank of the desired suggestion (e.g., 1 for the top suggestion).</p>
 
     <p><i>country</i> &rarr; (optional) restrict results to a specific country using the ISO 3166-1 alpha-2 country code (e.g., 'GB').</p>

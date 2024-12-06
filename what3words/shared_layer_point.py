@@ -52,7 +52,7 @@ class W3WPointLayerManager:
 
         # Add attributes for the W3W point
         provider.addAttributes([
-            QgsField("w3w_address", QVariant.String),
+            QgsField("what3words", QVariant.String),
             QgsField("lat", QVariant.Double),
             QgsField("lng", QVariant.Double),
             QgsField("nearestPlace", QVariant.String),
@@ -97,7 +97,7 @@ class W3WPointLayerManager:
         if 'words' not in point_data:
             return
 
-        w3w_address = point_data['words']
+        what3words = point_data['words']
 
         # Use clicked point's geometry if provided, otherwise use API coordinates
         if clicked_point:
@@ -120,7 +120,7 @@ class W3WPointLayerManager:
 
         # Set attributes for the W3W point
         feature.setAttributes([
-            w3w_address,
+            what3words,
             lat,  # Use the lat from clicked_point or W3W API
             lng,  # Use the lng from clicked_point or W3W API
             point_data.get('nearestPlace', ''),

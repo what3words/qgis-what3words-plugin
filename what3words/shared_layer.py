@@ -25,7 +25,7 @@ class W3WSquareLayerManager:
 
             # Add attributes for the W3W square
             provider.addAttributes([
-                QgsField("w3w_address", QVariant.String),
+                QgsField("what3words", QVariant.String),
                 QgsField("lat", QVariant.Double),
                 QgsField("lng", QVariant.Double),
                 QgsField("nearestPlace", QVariant.String),
@@ -37,18 +37,18 @@ class W3WSquareLayerManager:
             # Add the layer to the project
             QgsProject.instance().addMapLayer(self.square_layer)
 
-    def checkForDuplicate(self, w3w_address):
+    def checkForDuplicate(self, what3words):
         """
-        Checks if the given w3w_address already exists in the layer.
-        :param w3w_address: The what3words address to check for duplicates.
+        Checks if the given what3words already exists in the layer.
+        :param what3words: The what3words address to check for duplicates.
         :return: True if the address exists, False otherwise.
         """
         if not self.square_layer:
             return False
 
-        # Check each feature in the layer to see if the w3w_address already exists
+        # Check each feature in the layer to see if the what3words already exists
         for feature in self.square_layer.getFeatures():
-            if feature['w3w_address'] == w3w_address:
+            if feature['what3words'] == what3words:
                 return True
         return False
 
@@ -60,11 +60,11 @@ class W3WSquareLayerManager:
             iface.messageBar().pushMessage("what3words", "Invalid W3W data: Missing square or words", level=Qgis.Warning, duration=5)
             return
 
-        w3w_address = square_data['words']
+        what3words = square_data['words']
         
         # Check for duplicates before adding
-        if self.checkForDuplicate(w3w_address):
-            iface.messageBar().pushMessage("what3words", f"Duplicate W3W square: '{w3w_address}' already exists in the layer.", level=Qgis.Warning, duration=5)
+        if self.checkForDuplicate(what3words):
+            iface.messageBar().pushMessage("what3words", f"Duplicate W3W square: '{what3words}' already exists in the layer.", level=Qgis.Warning, duration=5)
             return  # Do not add a duplicate
 
         square = square_data['square']

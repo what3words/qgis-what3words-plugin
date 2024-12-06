@@ -75,7 +75,7 @@ class W3WMapTool(QgsMapTool):
 
             # Add the W3W address to the coord dialog's table
             self.coord_dialog.addRowToTable(
-                w3w_address=w3w_info['words'],
+                what3words=w3w_info['words'],
                 lat=pt4326.y(),
                 lon=pt4326.x(),
                 nearest_place=w3w_info.get('nearestPlace', ''),

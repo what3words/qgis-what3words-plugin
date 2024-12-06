@@ -8,7 +8,7 @@
                 "description": "Convert a what3words address to latitude and longitude.",
                 "parameters": [
                     {
-                        "name": "w3w_address",
+                        "name": "what3words",
                         "description": "The what3words address to convert."
                     }
                 ],
@@ -44,7 +44,7 @@
                 "description": "Get autosuggestions for a partial what3words address.",
                 "parameters": [
                     {
-                        "name": "partial_w3w_address",
+                        "name": "partial_what3words",
                         "description": "The partial what3words address to suggest completions for."
                     },
                     {
@@ -72,7 +72,7 @@
                 "description": "Change the language of a what3words address.",
                 "parameters": [
                     {
-                        "name": "w3w_address",
+                        "name": "what3words",
                         "description": "The what3words address to convert to another language."
                     },
                     {
