@@ -37,9 +37,6 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.mapToolForMapsite.w3wAddressCapturedForMapsite.connect(self.openMapsiteInBrowser)
         self.gridManager = None 
         self.storedMarkers = []  # List to store markers on the map
-        apiKey = pluginSetting("apiKey", namespace="what3words")
-        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
-        self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
         self.canvas.extentsChanged.connect(self.updateMarkers)
         self.canvas.extentsChanged.connect(self.redrawHighlight)
         
@@ -252,79 +249,6 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             self.tableWidget.setRowCount(0)
             self.tableWidget.blockSignals(False)
 
-    def importCsv(self):
-        """
-        Imports a CSV file, validates fields, and populates the table and map.
-        Dynamically identifies the field for what3words or coordinates using pattern matching.
-        """
-        # Open file dialog to select CSV
-        file_dialog = QFileDialog()
-        file_dialog.setNameFilter("CSV Files (*.csv)")
-        if not file_dialog.exec_():
-            return
-        csv_path = file_dialog.selectedFiles()[0]
-
-        # Define regex patterns for identifying column names
-        w3w_pattern = re.compile(r'(what3words|3[ _-]?word[ _-]?address|w3w)', re.IGNORECASE)
-        lat_pattern = re.compile(r'(latitude|lat)', re.IGNORECASE)
-        lon_pattern = re.compile(r'(longitude|lon|lng)', re.IGNORECASE)
-
-        try:
-            # Read the CSV file
-            with open(csv_path, 'r') as csv_file:
-                reader = csv.DictReader(csv_file)
-
-                # Normalize and identify the relevant columns
-                w3w_column = next((col for col in reader.fieldnames if w3w_pattern.search(col)), None)
-                lat_column = next((col for col in reader.fieldnames if lat_pattern.search(col)), None)
-                lon_column = next((col for col in reader.fieldnames if lon_pattern.search(col)), None)
-
-                # Validate that we have enough information
-                if not w3w_column and not (lat_column and lon_column):
-                    QMessageBox.warning(
-                        self, "Error",
-                        "CSV must contain either a valid what3words address field "
-                        "(e.g., '3 word address') or both latitude and longitude fields."
-                    )
-                    return
-
-                # Process each row
-                for row in reader:
-                    # Handle what3words addresses
-                    if w3w_column and row[w3w_column].strip():
-                        try:
-                            self.fetchAndDisplayDetails(row[w3w_column])
-                        except GeoCodeException as e:
-                            iface.messageBar().pushMessage(
-                                "what3words", f"Error processing row: {str(e)}", level=Qgis.Warning, duration=2
-                            )
-
-                    # Handle latitude and longitude
-                    elif lat_column and lon_column and row[lat_column].strip() and row[lon_column].strip():
-                        try:
-                            lat = float(row[lat_column])
-                            lon = float(row[lon_column])
-                            response = self.w3w.convertTo3wa(lat, lon)
-                            self.addRowToTable(
-                                what3words=response['words'],
-                                lat=lat,
-                                lon=lon,
-                                nearest_place=response.get('nearestPlace', ''),
-                                country=response.get('country', ''),
-                                language=response.get('language', '')
-                            )
-                            self.showMarkerOnMap(lat, lon)
-                        except (ValueError, GeoCodeException) as e:
-                            iface.messageBar().pushMessage(
-                                "what3words", f"Error processing row: {str(e)}", level=Qgis.Warning, duration=2
-                            )
-                    else:
-                        iface.messageBar().pushMessage(
-                            "what3words", "Skipping invalid row in CSV.", level=Qgis.Warning, duration=2
-                        )
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to import CSV: {str(e)}")
-            
     ## Context menu handling
     def showTableContextMenu(self, position):
         """Shows a custom context menu when right-clicking the table."""
@@ -715,6 +639,79 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save file. Error: {str(e)}")
 
+    def importCsv(self):
+        """
+        Imports a CSV file, validates fields, and populates the table and map.
+        Dynamically identifies the field for what3words or coordinates using pattern matching.
+        """
+        # Open file dialog to select CSV
+        file_dialog = QFileDialog()
+        file_dialog.setNameFilter("CSV Files (*.csv)")
+        if not file_dialog.exec_():
+            return
+        csv_path = file_dialog.selectedFiles()[0]
+
+        # Define regex patterns for identifying column names
+        w3w_pattern = re.compile(r'(what3words|3[ _-]?word[ _-]?address|w3w)', re.IGNORECASE)
+        lat_pattern = re.compile(r'(latitude|lat)', re.IGNORECASE)
+        lon_pattern = re.compile(r'(longitude|lon|lng)', re.IGNORECASE)
+
+        try:
+            # Read the CSV file
+            with open(csv_path, 'r') as csv_file:
+                reader = csv.DictReader(csv_file)
+
+                # Normalize and identify the relevant columns
+                w3w_column = next((col for col in reader.fieldnames if w3w_pattern.search(col)), None)
+                lat_column = next((col for col in reader.fieldnames if lat_pattern.search(col)), None)
+                lon_column = next((col for col in reader.fieldnames if lon_pattern.search(col)), None)
+
+                # Validate that we have enough information
+                if not w3w_column and not (lat_column and lon_column):
+                    QMessageBox.warning(
+                        self, "Error",
+                        "CSV must contain either a valid what3words address field "
+                        "(e.g., '3 word address') or both latitude and longitude fields."
+                    )
+                    return
+
+                # Process each row
+                for row in reader:
+                    # Handle what3words addresses
+                    if w3w_column and row[w3w_column].strip():
+                        try:
+                            self.fetchAndDisplayDetails(row[w3w_column])
+                        except GeoCodeException as e:
+                            iface.messageBar().pushMessage(
+                                "what3words", f"Error processing row: {str(e)}", level=Qgis.Warning, duration=2
+                            )
+
+                    # Handle latitude and longitude
+                    elif lat_column and lon_column and row[lat_column].strip() and row[lon_column].strip():
+                        try:
+                            lat = float(row[lat_column])
+                            lon = float(row[lon_column])
+                            response = self.w3w.convertTo3wa(lat, lon)
+                            self.addRowToTable(
+                                what3words=response['words'],
+                                lat=lat,
+                                lon=lon,
+                                nearest_place=response.get('nearestPlace', ''),
+                                country=response.get('country', ''),
+                                language=response.get('language', '')
+                            )
+                            self.showMarkerOnMap(lat, lon)
+                        except (ValueError, GeoCodeException) as e:
+                            iface.messageBar().pushMessage(
+                                "what3words", f"Error processing row: {str(e)}", level=Qgis.Warning, duration=2
+                            )
+                    else:
+                        iface.messageBar().pushMessage(
+                            "what3words", "Skipping invalid row in CSV.", level=Qgis.Warning, duration=2
+                        )
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to import CSV: {str(e)}")
+            
     ## Mapsite handling   
     def toggleMapToolForMapsite(self):
         apiKey = pluginSetting("apiKey", namespace="what3words")

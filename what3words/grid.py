@@ -21,13 +21,10 @@ class W3WGridManager:
 
     def __init__(self, canvas):
         self.canvas = canvas
-        apiKey = pluginSetting("apiKey", namespace="what3words")
-        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
-        self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
         self.grid_layer = None 
         self.grid_enabled = False  
         self.geojson_path = os.path.join(os.path.dirname(__file__), "w3w_grid.geojson")
-        self.last_grid_extent = None  # Track last fetched grid extent
+        self.last_grid_extent = None 
 
     def enableGrid(self, enable=True):
         """
@@ -122,7 +119,15 @@ class W3WGridManager:
 
         # Create the bounding box string in WGS84 for the API call
         bounding_box = f"{bottom_left.y()},{bottom_left.x()},{top_right.y()},{top_right.x()}"
+        apiKey = pluginSetting("apiKey", namespace="what3words")
+        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
 
+        if not apiKey:
+            iface.messageBar().pushMessage("what3words", "API key missing. Please set the API key in plugin settings.", level=Qgis.Warning, duration=5)
+            return
+
+        self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
+        
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
             grid_data = self.w3w.getGridSection(bounding_box)
