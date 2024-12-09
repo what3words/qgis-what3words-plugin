@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import os
-import webbrowser
 from builtins import object
 
 from qgis.core import Qgis, QgsApplication
@@ -15,8 +14,6 @@ from qgiscommons2.gui.settings import removeSettingsMenu, _settingActions, Confi
 from qgiscommons2.settings import pluginSetting, readSettings
 
 from what3words.coorddialog_new_ui import W3WCoordInputDialog 
-from what3words.maptool import W3WMapTool
-from what3words.grid import W3WGridManager
 from what3words.w3wfunctions import register_w3w_functions, unregister_w3w_functions 
 from what3words.processingprovider.w3wprovider import W3WProvider
 
@@ -137,18 +134,11 @@ class W3WTools(object):
         self.settingsAction.setEnabled(True)
         self.settingsDialog = None  # Reset dialog reference
 
-    def warningAPIsettings(self):
-        apikey = pluginSetting("apiKey", namespace="what3words")
-        if not apikey:
-            self._showMessage('what3words API key is not set. Please set it and try again.', Qgis.Warning)
-            return
-
     def showW3WCoordInputDialog(self):
         """
         Shows the 'Zoom to what3words address' dock widget.
         Ensures the associated button remains consistent with the visibility state.
         """
-        self.warningAPIsettings()
 
         if not self.zoomToDialog.isVisible():
             self.zoomToDialog.show()

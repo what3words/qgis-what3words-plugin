@@ -21,7 +21,9 @@ from what3words.maptool import W3WMapTool
 from what3words.grid import W3WGridManager
 from what3words.shared_layer_point import W3WPointLayerManager
 from what3words.w3w import what3words, GeoCodeException
-from what3words.ui.coorddialog_ui import Ui_discoverToWhat3words  # Import the generated UI class
+from what3words.ui.coorddialog_ui import Ui_discoverToWhat3words 
+from what3words.utils import get_w3w_instance
+
 ICON_PATH = os.path.join(os.path.dirname(__file__), "icons")
 
 class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
@@ -37,6 +39,11 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.mapToolForMapsite.w3wAddressCapturedForMapsite.connect(self.openMapsiteInBrowser)
         self.gridManager = None 
         self.storedMarkers = []  # List to store markers on the map
+
+        # Initialize the W3W API instance
+        self.refreshW3WInstance()
+
+        # Connect signals from the map tool to the respective functions
         self.canvas.extentsChanged.connect(self.updateMarkers)
         self.canvas.extentsChanged.connect(self.redrawHighlight)
         
@@ -107,6 +114,16 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
         # Handle dark mode styling
         self.handleDarkMode()
+
+    ## Refreshing the W3W instance
+    def refreshW3WInstance(self):
+        """
+        Refreshes the what3words API instance based on the current settings.
+        """
+        try:
+            self.w3w = get_w3w_instance()
+        except ValueError as e:
+            iface.messageBar().pushMessage("what3words", str(e), level=Qgis.Warning, duration=2)
     
     ## Table handling
     def addRowToTable(self, what3words, lat, lon, nearest_place, country, language):
@@ -373,16 +390,12 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         """
         # Check if the dialog is already open
         if hasattr(self, 'settingsDialog') and self.settingsDialog is not None:
-            # Bring the dialog to the front if it's already open
             self.settingsDialog.raise_()
             return
 
         # Check if the dialog is already open
         if not hasattr(self, 'settingsDialog') or self.settingsDialog is None:
-            # Attempt to open the settings dialog
             self.settingsDialog = ConfigDialog("what3words")
-
-            # Ensure the settings button is re-enabled when the dialog is closed
             self.settingsDialog.finished.connect(self.onSettingsDialogClosed)
 
         # Disable the settings button while dialog is open
@@ -393,8 +406,10 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
     def onSettingsDialogClosed(self):
         """
-        Callback when the settings dialog is closed. Re-enables the settings button.
+        Refresh settings and W3W instance and Callback when the settings dialog is closed. 
+        Re-enables the settings button.
         """
+        self.refreshW3WInstance()
         self.settingsButton.setEnabled(True)
         self.settingsDialog = None  # Reset dialog reference
 
@@ -480,15 +495,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         """Fetches autosuggest suggestions for a partial what3words address."""
         self.listWidget.clear()
         self.listWidget.setVisible(False)
-
-        apiKey = pluginSetting("apiKey", namespace="what3words")
-        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
-
-        if not apiKey:
-            iface.messageBar().pushMessage("what3words", "API key missing. Please set the API key in plugin settings.", level=Qgis.Warning, duration=2)
-            return
-
-        self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
+        self.w3w = get_w3w_instance()
 
         # Validate what3words address format
         if not self.w3w.is_possible_3wa(text):
@@ -546,16 +553,13 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
 
     def showW3WPoint(self, selected_text=None):
         """Show the W3W point on the map when a suggestion is selected."""
-        apiKey = pluginSetting("apiKey", namespace="what3words")
-        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
-        self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
-
         try:
             if selected_text is None:
                 w3wCoord = str(self.addLineEdit.text()).replace(" ", "")
             else:
                 w3wCoord = str(selected_text).replace(" ", "")
-            
+
+            self.w3w = get_w3w_instance()
             response_json = self.w3w.convertToCoordinates(w3wCoord)
             lat = float(response_json["coordinates"]["lat"])
             lng = float(response_json["coordinates"]["lng"])
@@ -577,6 +581,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
     def fetchAndDisplayDetails(self, what3words):
         """Fetches W3W details for the selected address and displays them in the table."""
         try:
+            self.w3w = get_w3w_instance()
             response_json = self.w3w.convertToCoordinates(what3words)
             lat = response_json["coordinates"]["lat"]
             lng = response_json["coordinates"]["lng"]
@@ -691,6 +696,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                         try:
                             lat = float(row[lat_column])
                             lon = float(row[lon_column])
+                            self.w3w = get_w3w_instance()
                             response = self.w3w.convertTo3wa(lat, lon)
                             self.addRowToTable(
                                 what3words=response['words'],
@@ -737,7 +743,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         Opens the specified what3words address in the browser after validating it.
         Ensures non-Latin characters are URL-encoded properly.
         """
-        if not self.w3w.is_valid_3wa:
+        self.w3w = get_w3w_instance()
+        if not self.w3w.is_valid_3wa(what3words):
             iface.messageBar().pushMessage(
                 "what3words", f"Invalid what3words address: {what3words}",
                 level=Qgis.Warning, duration=3

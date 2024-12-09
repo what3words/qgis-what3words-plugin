@@ -39,9 +39,9 @@ class GeoCodeException(Exception):
 class what3words(object):
     """what3words API"""
 
-    def __init__(self, apikey='', addressLanguage=''):
+    def __init__(self, apikey='', addressLanguage='', apiBaseUrl='https://api.what3words.com'):
         # Retrieve the API base URL from the plugin settings
-        self.host = pluginSetting("apiBaseUrl") or "https://api.what3words.com"
+        self.apiBaseUrl = apiBaseUrl
         self.apikey = apikey
         self.addressLanguage = addressLanguage
         self.nam = NetworkAccessManager()
@@ -57,7 +57,7 @@ class what3words(object):
         if isinstance(words, list):
             words = "%s.%s.%s" % (words[0], words[1], words[2])
         params = {'words': words, 'format': format}
-        url = f"{self.host}/v3/convert-to-coordinates"
+        url = f"{self.apiBaseUrl}/v3/convert-to-coordinates"
         response_json = self.postRequest(url, params)
 
         if 'square' in response_json:
@@ -85,7 +85,7 @@ class what3words(object):
         """
         coords = "%s,%s" % (lat, lng)
         params = {'coordinates': coords, 'format': format, 'language': language or self.addressLanguage}
-        url = f"{self.host}/v3/convert-to-3wa"
+        url = f"{self.apiBaseUrl}/v3/convert-to-3wa"
         response_json = self.postRequest(url, params)
 
         if 'square' in response_json:
@@ -107,7 +107,7 @@ class what3words(object):
 
         :return: A list of available languages.
         """
-        url = f"{self.host}/v3/languages"
+        url = f"{self.apiBaseUrl}/v3/languages"
         return self.postRequest(url, dict())
     
     def getGridSection(self, bounding_box, format='json'):
@@ -119,7 +119,7 @@ class what3words(object):
         :return: The grid data from the What3words API.
         """
         params = {'bounding-box': bounding_box, 'format': format}
-        url = f"{self.host}/v3/grid-section"
+        url = f"{self.apiBaseUrl}/v3/grid-section"
         return self.postRequest(url, params)
 
     def autosuggest(self, input_text, format='json', language=None, focus=None, clip_to_country=None, clip_to_bounding_box=None, clip_to_circle=None, clip_to_polygon=None, input_type=None, prefer_land=None, locale=None):
@@ -165,7 +165,7 @@ class what3words(object):
         if locale:
             params['locale'] = locale
 
-        url = f"{self.host}/v3/autosuggest"
+        url = f"{self.apiBaseUrl}/v3/autosuggest"
         return self.postRequest(url, params)
     
     def is_possible_3wa(self, text: str) -> bool:
@@ -184,9 +184,12 @@ class what3words(object):
         :return: True if valid 3 word address, False otherwise
         """
         if self.is_possible_3wa(text):
-            result = self.autosuggest(text, n_results=1)  # Check for the top result
-            if result["suggestions"] and result["suggestions"][0]["words"] == text:
-                return True
+            try:
+                result = self.autosuggest(text) # Call autosuggest to validate the 3 word address
+                if result.get("suggestions") and result["suggestions"][0]["words"] == text:
+                    return True
+            except GeoCodeException:
+                return False
         return False
 
     def postRequest(self, url, params):

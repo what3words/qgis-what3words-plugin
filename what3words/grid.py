@@ -5,14 +5,13 @@ from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransfor
                        QgsProject, QgsVectorLayer, QgsFeature, QgsGeometry, QgsPoint,
                        QgsLineSymbol, QgsSingleSymbolRenderer, QgsMapLayer,
                        QgsField, QgsVectorFileWriter)
-from qgis.gui import QgsMessageBar
 from qgis.PyQt.QtCore import Qt, QVariant
 from qgis.PyQt.QtGui import QCursor
-from qgis.PyQt.QtWidgets import QApplication, QFileDialog, QMessageBox
+from qgis.PyQt.QtWidgets import QApplication, QFileDialog
 from qgis.utils import iface
 from qgiscommons2.settings import pluginSetting
-from what3words.w3w import what3words, GeoCodeException
-
+from what3words.w3w import GeoCodeException
+from what3words.utils import get_w3w_instance
 
 
 class W3WGridManager:
@@ -119,17 +118,10 @@ class W3WGridManager:
 
         # Create the bounding box string in WGS84 for the API call
         bounding_box = f"{bottom_left.y()},{bottom_left.x()},{top_right.y()},{top_right.x()}"
-        apiKey = pluginSetting("apiKey", namespace="what3words")
-        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
-
-        if not apiKey:
-            iface.messageBar().pushMessage("what3words", "API key missing. Please set the API key in plugin settings.", level=Qgis.Warning, duration=5)
-            return
-
-        self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
         
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+            self.w3w = get_w3w_instance()
             grid_data = self.w3w.getGridSection(bounding_box)
 
             # Check if the API response contains an error

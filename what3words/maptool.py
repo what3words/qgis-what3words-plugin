@@ -1,16 +1,15 @@
 import os
 from qgis.core import (Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform,
                        QgsProject, QgsPointXY)
-from qgis.gui import QgsMapTool, QgsVertexMarker
+from qgis.gui import QgsMapTool
 from qgis.PyQt.QtCore import Qt
-from PyQt5.QtWidgets import QTableWidgetItem
 from qgis.PyQt.QtGui import QCursor
 from PyQt5.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import QApplication
 from qgis.utils import iface
-from qgiscommons2.settings import pluginSetting
-from what3words.w3w import what3words, GeoCodeException
+from what3words.w3w import GeoCodeException
 from what3words.shared_layer_point import W3WPointLayerManager
+from what3words.utils import get_w3w_instance
 
 
 class W3WMapTool(QgsMapTool):
@@ -33,17 +32,10 @@ class W3WMapTool(QgsMapTool):
         canvasCrs = canvas.mapSettings().destinationCrs()
         transform = QgsCoordinateTransform(canvasCrs, self.epsg4326, QgsProject.instance())
         pt4326 = transform.transform(pt.x(), pt.y())
-        apiKey = pluginSetting("apiKey", namespace="what3words")
-        addressLanguage = pluginSetting("addressLanguage", namespace="what3words")
-
-        if not apiKey:
-            iface.messageBar().pushMessage("what3words", "API key missing. Please set the API key in plugin settings.", level=Qgis.Warning, duration=5)
-            return
-
-        self.w3w = what3words(apikey=apiKey, addressLanguage=addressLanguage)
 
         try:
             QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+            self.w3w = get_w3w_instance() 
             w3w_info = self.w3w.convertTo3wa(pt4326.y(), pt4326.x())
 
             # Validate the API response
