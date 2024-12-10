@@ -3,6 +3,8 @@ from qgis.utils import qgsfunction
 from qgis.PyQt.QtCore import QVariant
 from qgiscommons2.settings import pluginSetting
 from what3words.w3w import what3words
+from what3words.utils import get_w3w_instance  # Import the new utility function
+
 
 group_name = "what3words Tools"
 
@@ -26,46 +28,37 @@ def transform_coords(y, x, crs):
     transformed_pt = transform.transform(x, y)
     return transformed_pt.y(), transformed_pt.x()  # Return lat, lon (y, x in EPSG:4326)
 
-
-def get_w3w_api():
-    """
-    Fetch the API key from plugin settings.
-    """
-    apiKey = pluginSetting("apiKey")
-    if apiKey is None or apiKey == "":
-        raise ValueError("API key not set in plugin settings.")
-    return what3words(apikey=apiKey)
-
-
 @qgsfunction(-1, group=group_name)
 def convert_to_coord(values, feature, parent):
     """
-    Convert a what3words address to latitude and longitude
+    Convert a what3words address to latitude and longitude.
 
     <h4>Syntax</h4>
-    <p><b>convert_to_coord(what3words[, order='yx', delimiter=', ', crs='EPSG:4326', return_type='separate'])</b></p>
+    <p><b>convert_to_coord(what3words[, order='yx', delimiter=', ', crs='EPSG:4326'])</b></p>
 
     <h4>Arguments:</h4>
     <ul>
-        <li><i>what3words</i> &rarr; The what3words address to convert.</li>
+        <li><i>what3words</i> &rarr; The what3words address to convert. The field must be a string.</li>
         <li><i>order</i> (optional) &rarr; 'yx' for latitude, longitude or 'xy' for longitude, latitude. Default is 'yx'.</li>
-        <li><i>delimiter</i> (optional) &rarr; Delimiter for string output. Default is ', '. Used if <i>return_type</i> is 'string'.</li>
+        <li><i>delimiter</i> (optional) &rarr; Delimiter for string output. Default is ', '. Used to return both latitude and longitude in the same field.</li>
         <li><i>crs</i> (optional) &rarr; The coordinate reference system of the input coordinates. Default is 'EPSG:4326'.</li>
-        <li><i>return_type</i> (optional) &rarr; 'string' returns coordinates as a comma-separated string. 'separate' (default) returns [lat, lon] as a list.</li>
     </ul>
 
     <h4>Returns:</h4>
-    <p>If <i>return_type</i> is 'separate', the function returns latitude and longitude as separate values in a list. If 'string', returns a string of lat, lon with the given delimiter.</p>
+    <p>By default, the function returns a "String List" with both latitude and longitude separated by the specified delimiter (default is ', ').</p>
+    <p>If users want to save latitude and longitude in separate fields as "Decimal number(double"), they can access the values directly by appending <code>[0]</code> for latitude or <code>[1]</code> for longitude to the function call (default order is "yx"</p>
 
     <h4>Example usage:</h4>
     <ul>
-        <li><code>convert_to_coord("filled.count.soap")</code> &rarr; Returns [lat, lon] in EPSG:4326 format.</li>
-        <li><code>convert_to_coord("filled.count.soap", 'string')</code> &rarr; Returns "51.520847,-0.195521".</li>
-        <li><code>convert_to_coord("filled.count.soap", 'xy', ', ', 'EPSG:3857', 'string')</code> &rarr; Converts coordinates to EPSG:3857 and returns as a string.</li>
+        <li><code>convert_to_coord("filled.count.soap")</code> &rarr; Returns "51.520847,-0.195521".</li>
+        <li><code>convert_to_coord("filled.count.soap", order='xy')</code> &rarr; Returns "-0.195521,51.520847".</li>
+        <li><code>convert_to_coord("filled.count.soap", crs='EPSG:3857')</code> &rarr; Converts coordinates to EPSG:3857 and returns them as a string.</li>
+        <li><code>convert_to_coord("filled.count.soap")[0]</code> &rarr; Extracts and returns only the latitude.</li>
+        <li><code>convert_to_coord("filled.count.soap")[1]</code> &rarr; Extracts and returns only the longitude.</li>
     </ul>
     """
     num_args = len(values)
-    if num_args < 1 or num_args > 5:
+    if num_args < 1 or num_args > 4:
         parent.setEvalErrorString("Error: invalid number of arguments")
         return
     
@@ -74,9 +67,8 @@ def convert_to_coord(values, feature, parent):
         order = values[1] if num_args > 1 else 'yx'
         delimiter = values[2] if num_args > 2 else ', '
         crs = values[3] if num_args > 3 else 'EPSG:4326'
-        return_type = values[4] if num_args > 4 else 'separate'
         
-        w3w = get_w3w_api()
+        w3w = get_w3w_instance()
         result = w3w.convertToCoordinates(what3words)
         lat = result['coordinates']['lat']
         lon = result['coordinates']['lng']
@@ -88,11 +80,8 @@ def convert_to_coord(values, feature, parent):
         # Handle order of lat/lon
         coords = [lat, lon] if order == 'yx' else [lon, lat]
 
-        # Return string or list based on return_type
-        if return_type == 'string':
-            return f"{coords[0]}{delimiter}{coords[1]}"
-        else:
-            return coords
+        # Return string with delimiter
+        return coords
     except Exception as e:
         parent.setEvalErrorString(f"Error converting to coordinates: {str(e)}")
         return None
@@ -132,7 +121,7 @@ def convert_to_3wa(values, feature, parent):
         lon = values[1]
         language = values[2] if len(values) > 2 else "en"  # Default to English if no language provided
 
-        w3w = get_w3w_api()  # Get the what3words API key from settings
+        w3w = get_w3w_instance()
         result = w3w.convertTo3wa(lat, lon, language=language)
         return result['words']  # Return the 3 word address
 
@@ -173,8 +162,7 @@ def change_w3w_language(values, feature, parent):
         what3words = values[0]
         target_language = values[1]  # Target language code (e.g., 'es', 'fr')
 
-        # Get the what3words API key from settings
-        w3w = get_w3w_api()
+        w3w = get_w3w_instance()
 
         # Step 1: Convert the original w3w address back to coordinates
         result = w3w.convertToCoordinates(what3words)
@@ -249,17 +237,9 @@ def autosuggest_w3w(values, feature, parent):
     polygon = values[5] if len(values) > 5 else None
     focus = values[6] if len(values) > 6 else None
 
-    # Prepare API request
-    apiKey = pluginSetting("apiKey")
-    if not apiKey:
-        parent.setEvalErrorString("Error: API key not set.")
-        return None
-
-    w3w = what3words(apikey=apiKey)
-
     # Construct API parameters
     try:
-        # Make API call to autosuggest with relevant options
+        w3w = get_w3w_instance()
         response = w3w.autosuggest(
             input_address,
             clip_to_country=country,

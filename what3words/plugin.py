@@ -22,8 +22,6 @@ class W3WTools(object):
 
     def __init__(self, iface):
         self.iface = iface
-        self.gridManager = None  
-        self.mapTool = None
         self.coordDialog = None 
         self.settingsDialog = None
         self.provider = W3WProvider()
@@ -124,33 +122,11 @@ class W3WTools(object):
         """
         Cleans up all components when the plugin is unloaded.
         """
-        if self.gridManager and self.gridManager.grid_enabled:
-            self.gridManager.enableGrid(False)
-
-        # Remove the grid toggle action
-        if hasattr(self, 'gridToggleAction'):
-            self.iface.removeToolBarIcon(self.gridToggleAction)
-            self.iface.removePluginMenu("what3words", self.gridToggleAction)
-            del self.gridToggleAction
-
-        # Unset map tool and remove tool action if present
-        self.iface.mapCanvas().unsetMapTool(self.mapTool)
-        if hasattr(self, 'toolAction'):
-            self.iface.removeToolBarIcon(self.toolAction)
-            self.iface.removePluginMenu("what3words", self.toolAction)
-            del self.toolAction
-
-        # Remove zoom action if present
+        # Remove coorddialog action if present
         if hasattr(self, 'coordDialogAction'):
             self.iface.removeToolBarIcon(self.coordDialogAction)
             self.iface.removePluginMenu("what3words", self.coordDialogAction)
             del self.coordDialogAction
-        
-        # Remove Open Mapsite action
-        if hasattr(self, 'openMapsiteAction'):
-            self.iface.removeToolBarIcon(self.openMapsiteAction)
-            self.iface.removePluginMenu("what3words", self.openMapsiteAction)
-            del self.openMapsiteAction
 
         # Remove settings action if present
         if hasattr(self, 'settingsAction'):
@@ -165,9 +141,19 @@ class W3WTools(object):
         if "what3words" in _settingActions:
             removeSettingsMenu("what3words")
 
-        # Remove help and about menus
-        removeHelpMenu("what3words")
-        removeAboutMenu("what3words")
+        # Safely remove help menu if it exists
+        try:
+            removeHelpMenu("what3words")
+        except KeyError:
+            iface.messageBar().pushMessage(
+                "what3words", "Help menu was not found during unload.", level=Qgis.Warning)
+
+        # Safely remove about menu if it exists
+        try:
+            removeAboutMenu("what3words")
+        except KeyError:
+            iface.messageBar().pushMessage(
+                "what3words", "About menu was not found during unload.", level=Qgis.Warning)
 
         # Unregister functions and processing provider
         unregister_w3w_functions()

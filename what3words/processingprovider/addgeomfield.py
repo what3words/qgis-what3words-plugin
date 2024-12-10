@@ -25,7 +25,7 @@ from qgis.core import (QgsProcessingException,
                        QgsProcessingParameterFeatureSink)
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 
-from what3words.w3w import what3words
+from what3words.utils import get_w3w_instance
 from qgiscommons2.settings import pluginSetting
 
 pluginPath = os.path.split(os.path.dirname(__file__))[0]
@@ -46,7 +46,7 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
         super().__init__()
 
     def initAlgorithm(self, config=None):
-        self.addParameter(QgsProcessingParameterMapLayer(self.INPUT, self.tr('Input layer')))
+        self.addParameter(QgsProcessingParameterMapLayer(self.INPUT, self.tr('Input CSV file')))
         self.addParameter(QgsProcessingParameterField(self.W3WFIELD, self.tr('what3words address field'),
                 '',
                 self.INPUT))
@@ -58,6 +58,34 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
 
     def displayName(self):
         return self.tr('Geocode what3words address layer')
+    
+    def helpString(self):
+        """
+        Returns a detailed help string for the algorithm.
+        """
+        return """
+        <h1>Geocode what3words Address Layer</h1>
+        <p>This algorithm geocodes a CSV file using a field containing <b>what3words</b> addresses. 
+        The output is a new point layer with geometries corresponding to the geocoded 3 word addresses.</p>
+
+        <h3>Parameters:</h3>
+        <ul>
+          <li><b>CSV file:</b> The input vector layer containing features with what3words addresses.</li>
+          <li><b>What3words address field:</b> The field in the input layer that contains the what3words addresses.</li>
+          <li><b>Output layer:</b> The resulting layer with point geometries based on the geocoded what3words addresses.</li>
+        </ul>
+
+        <h3>Notes:</h3>
+        <ul>
+          <li>The field containing what3words addresses must be specified and valid.</li>
+          <li>An API key must be configured in the plugin settings.</li>
+          <li>All geometries are transformed to EPSG:4326 (WGS84) for consistency.</li>
+          <li>Features with invalid or missing what3words addresses will not be geocoded and will generate debug information.</li>
+        </ul>
+        """
+    
+    def helpUrl(self):
+        return "https://developer.what3words.com/tools/gis-extensions/qgis"
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)  
@@ -68,9 +96,11 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
         fields = source.fields()
         idxFieldId = fields.indexFromName(w3wField)
 
-        apiKey = pluginSetting("apiKey")
-        addressLanguage = pluginSetting("addressLanguage")
-        w3w = what3words(apikey=apiKey,addressLanguage=addressLanguage)
+        try:
+            w3w = get_w3w_instance()  # Use centralized function to get API instance
+        except ValueError as e:
+            raise QgsProcessingException(f"Error initializing what3words API: {str(e)}")
+
         (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context,
                                                fields, QgsWkbTypes.Point, QgsCoordinateReferenceSystem('EPSG:4326'))
         features = source.getFeatures()

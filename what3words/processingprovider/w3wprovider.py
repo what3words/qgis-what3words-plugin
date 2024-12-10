@@ -29,7 +29,7 @@ class W3WProvider(QgsProcessingProvider):
         return True
 
     def unload(self):
-        pass
+        QgsProcessingProvider.unload(self)
 
     def isActive(self):
         """Return True if the provider is activated and ready to run algorithms"""
