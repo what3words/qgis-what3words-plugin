@@ -107,7 +107,7 @@ class what3words(object):
 
         :return: A list of available languages.
         """
-        url = f"{self.apiBaseUrl}/v3/languages"
+        url = f"{self.apiBaseUrl}/v3/available-languages"
         return self.postRequest(url, dict())
     
     def getGridSection(self, bounding_box, format='json'):

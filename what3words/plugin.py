@@ -11,7 +11,7 @@ from qgis.utils import iface
 from qgiscommons2.gui import (addAboutMenu, addHelpMenu, removeAboutMenu,
                               removeHelpMenu)
 from qgiscommons2.gui.settings import removeSettingsMenu, _settingActions, ConfigDialog
-from qgiscommons2.settings import pluginSetting, readSettings
+from qgiscommons2.settings import readSettings
 
 from what3words.coorddialog_new_ui import W3WCoordInputDialog 
 from what3words.w3wfunctions import register_w3w_functions, unregister_w3w_functions 

@@ -36,12 +36,6 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
     W3WFIELD = 'WHAT3WORDS ADDRESS'
     OUTPUT = 'OUTPUT'
 
-    # def group(self):
-    #     return self.tr('what3words')
-
-    # def groupId(self):
-    #     return 'w3w'
-
     def __init__(self):
         super().__init__()
 
@@ -57,14 +51,13 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
         return 'addw3wgeomfield'
 
     def displayName(self):
-        return self.tr('Geocode what3words address layer')
+        return self.tr('Geocode CSV file with what3words address field')
     
-    def helpString(self):
+    def shortHelpString(self):
         """
         Returns a detailed help string for the algorithm.
         """
-        return """
-        <h1>Geocode what3words Address Layer</h1>
+        return self.tr("""
         <p>This algorithm geocodes a CSV file using a field containing <b>what3words</b> addresses. 
         The output is a new point layer with geometries corresponding to the geocoded 3 word addresses.</p>
 
@@ -82,31 +75,34 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
           <li>All geometries are transformed to EPSG:4326 (WGS84) for consistency.</li>
           <li>Features with invalid or missing what3words addresses will not be geocoded and will generate debug information.</li>
         </ul>
-        """
+        """)
     
     def helpUrl(self):
         return "https://developer.what3words.com/tools/gis-extensions/qgis"
 
     def processAlgorithm(self, parameters, context, feedback):
-        source = self.parameterAsSource(parameters, self.INPUT, context)  
-        w3wField = self.parameterAsString(
-        parameters,
-        self.W3WFIELD,
-        context)       
+        source = self.parameterAsSource(parameters, self.INPUT, context)
+        w3wField = self.parameterAsString(parameters, self.W3WFIELD, context)
         fields = source.fields()
-        idxFieldId = fields.indexFromName(w3wField)
 
+        # Validate if the field exists
+        if w3wField not in [f.name() for f in fields]:
+            raise QgsProcessingException(f"The field '{w3wField}' does not exist in the input CSV file.")
+
+        idxFieldId = fields.indexFromName(w3wField)
+        
         try:
             w3w = get_w3w_instance()  # Use centralized function to get API instance
         except ValueError as e:
             raise QgsProcessingException(f"Error initializing what3words API: {str(e)}")
 
         (sink, dest_id) = self.parameterAsSink(parameters, self.OUTPUT, context,
-                                               fields, QgsWkbTypes.Point, QgsCoordinateReferenceSystem('EPSG:4326'))
+                                            fields, QgsWkbTypes.Point, QgsCoordinateReferenceSystem('EPSG:4326'))
         features = source.getFeatures()
         total = 100.0 / source.featureCount() if source.featureCount() else 0
-        epsg4326 = QgsCoordinateReferenceSystem('EPSG:4326')
-        transform = QgsCoordinateTransform(source.sourceCrs(), epsg4326, QgsProject.instance())
+
+        geocoded_count = 0
+        skipped_count = 0
 
         for current, feat in enumerate(features):
             if feedback.isCanceled():
@@ -115,17 +111,26 @@ class Add3WordsGeomFieldAlgorithm(QgisAlgorithm):
             feedback.setProgress(int(current * total))
             attrs = feat.attributes()
             threewa = attrs[idxFieldId]
+
             try:
+                if not threewa or not isinstance(threewa, str):
+                    raise ValueError("Missing or invalid what3words address.")
+
                 data = w3w.convertToCoordinates(threewa)
                 lat = data["coordinates"]["lat"]
                 lng = data["coordinates"]["lng"]
-                feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lng,lat ))) 
+                feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lng, lat)))
+                geocoded_count += 1
             except Exception as e:
-                feedback.pushDebugInfo("Failed to retrieve w3w address for feature {}:\n{}".format(feat.id(), str(e)))
-                threeWords = ""
-            
-               
+                feedback.pushDebugInfo(f"Failed to geocode feature {feat.id()}: {str(e)}")
+                skipped_count += 1
+                continue
+
             feat.setAttributes(attrs)
             sink.addFeature(feat, QgsFeatureSink.FastInsert)
 
+        feedback.pushInfo(f"Geocoded {geocoded_count} features.")
+        feedback.pushInfo(f"Skipped {skipped_count} features due to errors or missing addresses.")
+
         return {self.OUTPUT: dest_id}
+ 
