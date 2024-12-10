@@ -24,7 +24,7 @@ class W3WTools(object):
         self.iface = iface
         self.gridManager = None  
         self.mapTool = None
-        self.zoomToDialog = None 
+        self.coordDialog = None 
         self.settingsDialog = None
         self.provider = W3WProvider()
         register_w3w_functions() 
@@ -40,54 +40,26 @@ class W3WTools(object):
 
     def initGui(self):
         # Add the dock widget for zooming to w3w
-        self.zoomToDialog = W3WCoordInputDialog(self.iface.mapCanvas(), self.iface.mainWindow())
-        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.zoomToDialog)
-        self.zoomToDialog.hide()
+        self.coordDialog = W3WCoordInputDialog(self.iface.mapCanvas(), self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.coordDialog)
+        self.coordDialog.settingsButtonClicked.connect(self.toggleSettingsAction)  # Connect signal
+        self.coordDialog.hide()
 
         # Add zoom to what3words address button
-        if not hasattr(self, 'zoomToAction'):
-            zoomToIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.svg"))
-            self.zoomToAction = QAction(zoomToIcon, "Discover what3words address", self.iface.mainWindow())
-            self.zoomToAction.triggered.connect(self.showW3WCoordInputDialog)
-            self.zoomToAction.setCheckable(True)
-            self.zoomToDialog.zoomToAction = self.zoomToAction  # Pass the action to the dock widget
-            self.iface.addToolBarIcon(self.zoomToAction)
-            self.iface.addPluginToMenu("what3words", self.zoomToAction)
+        if not hasattr(self, 'coordDialogAction'):
+            coordDialogIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.svg"))
+            self.coordDialogAction = QAction(coordDialogIcon, "Discover what3words address", self.iface.mainWindow())
+            self.coordDialogAction.triggered.connect(self.showW3WCoordInputDialog)
+            self.coordDialogAction.setCheckable(True)
+            self.coordDialog.coordDialogAction = self.coordDialogAction  # Pass the action to the dock widget
+            self.iface.addToolBarIcon(self.coordDialogAction)
+            self.iface.addPluginToMenu("what3words", self.coordDialogAction)
         
-        # Add map tool button
-        if not hasattr(self, 'toolAction'):
-            mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w_marker.svg"))
-            self.toolAction = QAction(mapToolIcon, "View what3words address", self.iface.mainWindow())
-            self.toolAction.triggered.connect(self.zoomToDialog.toggleCaptureTool)
-            self.toolAction.setCheckable(True)
-            # self.iface.addToolBarIcon(self.toolAction)
-            # self.iface.addPluginToMenu("what3words", self.toolAction)
-
-
-        # Add grid toggle button with dynamic text updates
-        if not hasattr(self, 'gridToggleAction'):
-            gridIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "grid_red.svg"))
-            self.gridToggleAction = QAction(gridIcon, "View Grid", self.iface.mainWindow())
-            self.gridToggleAction.setCheckable(True)
-            self.gridToggleAction.toggled.connect(self.zoomToDialog.toggleGrid)
-            # self.iface.addToolBarIcon(self.gridToggleAction)
-            # self.iface.addPluginToMenu("what3words", self.gridToggleAction)
-
-         # Add open mapsite button
-        if not hasattr(self, 'openMapsiteAction'):
-            mapsiteIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w_search.svg"))
-            self.openMapsiteAction = QAction(mapsiteIcon, "Open Mapsite", self.iface.mainWindow())
-            self.openMapsiteAction.triggered.connect(self.zoomToDialog.toggleMapToolForMapsite)
-            self.openMapsiteAction.setCheckable(True)
-            # self.iface.addToolBarIcon(self.openMapsiteAction)
-            # self.iface.addPluginToMenu("what3words", self.openMapsiteAction)
-
         # Add settings button to toolbar
         if not hasattr(self, 'settingsAction'):
             self.settingsAction = QAction(QgsApplication.getThemeIcon('/mActionOptions.svg'), "Settings",iface.mainWindow())
             self.settingsAction.setCheckable(True)
             self.settingsAction.triggered.connect(self.showSettingsDialog)
-            # self.iface.addToolBarIcon(self.settingsAction)
             self.iface.addPluginToMenu("what3words", self.settingsAction)
 
         # Add settings, help, and about menus
@@ -110,20 +82,14 @@ class W3WTools(object):
         while the dialog is open and re-enables it when the dialog is closed.
         """
         # Check if the dialog is already open
-        if self.settingsDialog is not None:
-            # Bring the dialog to the front if it's already open
+        if hasattr(self, 'settingsDialog') and self.settingsDialog is not None:
             self.settingsDialog.raise_()
             return
 
-        # Attempt to open the settings dialog
-        self.settingsDialog = ConfigDialog("what3words")
-
-        # If openSettingsDialog did not return a valid dialog, handle it with a message
-        if self.settingsDialog is None:
-            self._showMessage("Error: Could not open settings dialog.", Qgis.Critical)
-            return
-
         self.settingsAction.setEnabled(False)
+        self.coordDialog.settingsButton.setEnabled(False)  # Disable coordDialog button
+
+        self.settingsDialog = ConfigDialog("what3words")
         self.settingsDialog.finished.connect(self.onSettingsDialogClosed)
         self.settingsDialog.show()
 
@@ -132,7 +98,14 @@ class W3WTools(object):
         Callback when the settings dialog is closed. Re-enables the settings button.
         """
         self.settingsAction.setEnabled(True)
+        self.coordDialog.settingsButton.setEnabled(True)  # Re-enable coordDialog button
         self.settingsDialog = None  # Reset dialog reference
+
+    def toggleSettingsAction(self, disable):
+        """
+        Enables or disables the main menu settings button based on coordDialog's state.
+        """
+        self.settingsAction.setEnabled(not disable)
 
     def showW3WCoordInputDialog(self):
         """
@@ -140,12 +113,12 @@ class W3WTools(object):
         Ensures the associated button remains consistent with the visibility state.
         """
 
-        if not self.zoomToDialog.isVisible():
-            self.zoomToDialog.show()
-            self.zoomToAction.setChecked(True)  # Ensure the button is checked
+        if not self.coordDialog.isVisible():
+            self.coordDialog.show()
+            self.coordDialogAction.setChecked(True)  # Ensure the button is checked
         else:
-            self.zoomToDialog.hide()
-            self.zoomToAction.setChecked(False)  # Ensure the button is unchecked
+            self.coordDialog.hide()
+            self.coordDialogAction.setChecked(False)  # Ensure the button is unchecked
 
     def unload(self):
         """
@@ -168,10 +141,10 @@ class W3WTools(object):
             del self.toolAction
 
         # Remove zoom action if present
-        if hasattr(self, 'zoomToAction'):
-            self.iface.removeToolBarIcon(self.zoomToAction)
-            self.iface.removePluginMenu("what3words", self.zoomToAction)
-            del self.zoomToAction
+        if hasattr(self, 'coordDialogAction'):
+            self.iface.removeToolBarIcon(self.coordDialogAction)
+            self.iface.removePluginMenu("what3words", self.coordDialogAction)
+            del self.coordDialogAction
         
         # Remove Open Mapsite action
         if hasattr(self, 'openMapsiteAction'):
@@ -186,8 +159,8 @@ class W3WTools(object):
             del self.settingsAction
 
         # Remove the dock widget
-        if self.zoomToDialog:
-            self.iface.removeDockWidget(self.zoomToDialog)
+        if self.coordDialog:
+            self.iface.removeDockWidget(self.coordDialog)
 
         if "what3words" in _settingActions:
             removeSettingsMenu("what3words")

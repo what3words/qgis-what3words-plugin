@@ -6,7 +6,7 @@ import webbrowser
 import urllib
 
 from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QSizePolicy, QApplication, QDockWidget, QListWidget, QListWidgetItem, QFileDialog, QMessageBox, QMenu, QAction
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QIcon
 
 from qgis.core import Qgis, QgsWkbTypes, QgsPointXY, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject, QgsFeature, QgsGeometry, QgsRectangle
@@ -27,6 +27,8 @@ from what3words.utils import get_w3w_instance
 ICON_PATH = os.path.join(os.path.dirname(__file__), "icons")
 
 class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
+    settingsButtonClicked = pyqtSignal(bool)
+
     def __init__(self, canvas, parent):
         super(W3WCoordInputDialog, self).__init__(parent)
         self.canvas = canvas
@@ -46,6 +48,8 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         # Connect signals from the map tool to the respective functions
         self.canvas.extentsChanged.connect(self.updateMarkers)
         self.canvas.extentsChanged.connect(self.redrawHighlight)
+        self.settingsButton.clicked.connect(self.openSettingsDialog)
+        self.settingsDialog = None  # To track the settings dialog
         
         self.initGui()
 
@@ -76,7 +80,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.openMapsiteButton.clicked.connect(self.toggleMapToolForMapsite)
         self.openMapsiteButton.setCheckable(True)
 
-        self.settingsButton.clicked.connect(self.showSettingsDialog)
+        self.settingsButton.clicked.connect(self.openSettingsDialog)
         self.settingsButton.setCheckable(True)
 
         self.tableWidget.itemSelectionChanged.connect(self.onTableItemSelected)
@@ -383,34 +387,31 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             iface.messageBar().pushMessage("what3words", "Grid disabled.", level=Qgis.Info, duration=2)
 
     ## Settings handling
-    def showSettingsDialog(self):
+    def openSettingsDialog(self):
         """
         Opens the settings dialog if it's not already open. Disables the settings button
         while the dialog is open and re-enables it when the dialog is closed.
         """
         # Check if the dialog is already open
-        if hasattr(self, 'settingsDialog') and self.settingsDialog is not None:
+        if self.settingsDialog is not None:
             self.settingsDialog.raise_()
             return
 
-        # Check if the dialog is already open
-        if not hasattr(self, 'settingsDialog') or self.settingsDialog is None:
-            self.settingsDialog = ConfigDialog("what3words")
-            self.settingsDialog.finished.connect(self.onSettingsDialogClosed)
-
-        # Disable the settings button while dialog is open
         self.settingsButton.setEnabled(False)
-
-        # Show the dialog
+        self.settingsButtonClicked.emit(True)  # Notify the main plugin
+        
+        self.settingsDialog = ConfigDialog("what3words")
+        self.settingsDialog.finished.connect(self.closeSettingsDialog)
         self.settingsDialog.show()
 
-    def onSettingsDialogClosed(self):
+    def closeSettingsDialog(self):
         """
         Refresh settings and W3W instance and Callback when the settings dialog is closed. 
         Re-enables the settings button.
         """
         self.refreshW3WInstance()
         self.settingsButton.setEnabled(True)
+        self.settingsButtonClicked.emit(False)  # Notify the main plugin
         self.settingsDialog = None  # Reset dialog reference
 
     ## Dark mode handling   
@@ -909,9 +910,9 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
         self.canvas.extentsChanged.disconnect(self.updateMarkers)
         self.canvas.extentsChanged.disconnect(self.redrawHighlight)
 
-        # Uncheck the ZoomToAction button
-        if hasattr(self, 'zoomToAction') and self.zoomToAction:
-            self.zoomToAction.setChecked(False)
+        # Uncheck the coordDialogAction button
+        if hasattr(self, 'coordDialogAction') and self.coordDialogAction:
+            self.coordDialogAction.setChecked(False)
 
         # Uncheck and disable the grid button if enabled
         if hasattr(self, 'viewGridButton') and self.viewGridButton.isChecked():

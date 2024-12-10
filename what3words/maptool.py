@@ -17,10 +17,10 @@ class W3WMapTool(QgsMapTool):
     w3wAddressCapturedForMapsite = pyqtSignal(str)
     epsg4326 = QgsCoordinateReferenceSystem("EPSG:4326")
 
-    def __init__(self, canvas, coord_dialog):
+    def __init__(self, canvas, coordDialog):
         super().__init__(canvas)
         self.canvas = canvas
-        self.coord_dialog = coord_dialog  # Pass coorddialog instance to access the checkbox
+        self.coordDialog = coordDialog  # Pass coorddialog instance to access the checkbox
         self.setCursor(Qt.CrossCursor)
         self.point_layer_manager = W3WPointLayerManager.getInstance()
 
@@ -68,10 +68,10 @@ class W3WMapTool(QgsMapTool):
             self.w3wAddressCapturedForMapsite.emit(w3w_info['words'])
 
             # Add the marker on the map at the selected point
-            self.coord_dialog.addMarker(pt)
+            self.coordDialog.addMarker(pt)
 
             # Add the W3W address to the coord dialog's table
-            self.coord_dialog.addRowToTable(
+            self.coordDialog.addRowToTable(
                 what3words=w3w_info['words'],
                 lat=pt4326.y(),
                 lon=pt4326.x(),
