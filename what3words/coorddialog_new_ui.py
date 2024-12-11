@@ -5,7 +5,7 @@ import webbrowser
 
 import urllib
 
-from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QSizePolicy, QApplication, QDockWidget, QListWidget, QListWidgetItem, QFileDialog, QMessageBox, QMenu, QAction
+from PyQt5.QtWidgets import QTableWidgetItem, QHeaderView, QSizePolicy, QApplication, QDockWidget, QListWidget, QListWidgetItem, QFileDialog, QMessageBox, QMenu, QAction, QDialog, QVBoxLayout, QLabel, QComboBox, QDialogButtonBox
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QIcon
 
@@ -648,7 +648,11 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
     def importCsv(self):
         """
         Imports a CSV file, validates fields, and populates the table and map.
-        Dynamically identifies the field for what3words or coordinates using pattern matching.
+        Allows users to map fields for what3words, latitude, and longitude.
+        Users can choose:
+            1. Only the what3words field
+            2. Only the latitude and longitude fields
+            3. Both the what3words field and the latitude and longitude fields
         """
         # Open file dialog to select CSV
         file_dialog = QFileDialog()
@@ -657,30 +661,31 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
             return
         csv_path = file_dialog.selectedFiles()[0]
 
-        # Define regex patterns for identifying column names
-        w3w_pattern = re.compile(
-            r'(what3words|3[ _-]?word[ _-]?address|w3w|three[ _-]?words|three[ _-]?word[ _-]?address)', 
-            re.IGNORECASE
-        )
-        lat_pattern = re.compile(r'(latitude|lat)', re.IGNORECASE)
-        lon_pattern = re.compile(r'(longitude|lon|lng)', re.IGNORECASE)
-
         try:
             # Read the CSV file
-            with open(csv_path, 'r', encoding='utf-8-sig') as csv_file:  # Use utf-8-sig to handle BOM in UTF-8 files
+            with open(csv_path, 'r', encoding='utf-8-sig') as csv_file:  # Handle BOM in UTF-8 files
                 reader = csv.DictReader(csv_file)
 
-                # Normalize and identify the relevant columns
-                w3w_column = next((col for col in reader.fieldnames if w3w_pattern.search(col)), None)
-                lat_column = next((col for col in reader.fieldnames if lat_pattern.search(col)), None)
-                lon_column = next((col for col in reader.fieldnames if lon_pattern.search(col)), None)
+                # Get field names from the CSV
+                fieldnames = reader.fieldnames
+                if not fieldnames:
+                    QMessageBox.warning(self, "Error", "The CSV file has no headers.")
+                    return
 
-                # Validate that we have enough information
+                # Ask the user to map fields
+                w3w_column, lat_column, lon_column = self.askUserToMapFields(fieldnames)
+
+                # Stop processing if the user canceled the dialog
+                if w3w_column is None and lat_column is None and lon_column is None:
+                    return
+
+                # Validate field mapping
                 if not w3w_column and not (lat_column and lon_column):
                     QMessageBox.warning(
                         self, "Error",
-                        "CSV must contain either a valid what3words address field "
-                        "(e.g., '3 word address', 'what3words') or both latitude and longitude fields."
+                        "You must map at least one of the following:\n"
+                        "1. The what3words address field\n"
+                        "2. Both latitude and longitude fields."
                     )
                     return
 
@@ -697,7 +702,7 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                             )
 
                     # Handle latitude and longitude
-                    elif lat_column and lon_column and row[lat_column].strip() and row[lon_column].strip():
+                    if lat_column and lon_column and row[lat_column].strip() and row[lon_column].strip():
                         try:
                             lat = float(row[lat_column].strip())
                             lon = float(row[lon_column].strip())
@@ -711,20 +716,86 @@ class W3WCoordInputDialog(QDockWidget, Ui_discoverToWhat3words):
                                 country=response.get('country', ''),
                                 language=response.get('language', '')
                             )
-                            self.showMarkerOnMap(lat, lon)
+                            point_map_crs = self.get_map_coordinate_from_lat_lon(lat, lon)
+                            self.addMarker(point_map_crs)
                         except (ValueError, GeoCodeException) as e:
                             iface.messageBar().pushMessage(
                                 "what3words", f"Error processing row with coordinates ({lat}, {lon}): {str(e)}",
                                 level=Qgis.Warning, duration=3
                             )
-                    else:
+                    elif not w3w_column:
                         iface.messageBar().pushMessage(
                             "what3words", "Skipping invalid row in CSV. Missing or invalid data.",
                             level=Qgis.Warning, duration=3
                         )
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to import CSV: {str(e)}")
-    
+
+
+    def askUserToMapFields(self, fieldnames):
+        """
+        Displays a dialog for users to map the what3words, latitude, and longitude fields.
+
+        :param fieldnames: List of field names from the CSV file.
+        :return: A tuple (w3w_column, lat_column, lon_column) representing the selected fields.
+        """
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Map CSV Fields")
+
+        layout = QVBoxLayout(dialog)
+
+        instructions = QLabel(
+            "Please map the fields in your CSV file to the corresponding data types. You can choose to map:\n"
+            "1. Only the what3words field\n"
+            "2. Only the latitude and longitude fields\n"
+            "3. Both the what3words field and the latitude and longitude fields."
+        )
+        layout.addWidget(instructions)
+
+        # Dropdown for what3words field
+        w3w_label = QLabel("Select the what3words address field (optional):")
+        layout.addWidget(w3w_label)
+        w3w_combo = QComboBox()
+        w3w_combo.addItems([""] + fieldnames)
+        layout.addWidget(w3w_combo)
+
+        # Dropdown for latitude field
+        lat_label = QLabel("Select the latitude field (optional):")
+        layout.addWidget(lat_label)
+        lat_combo = QComboBox()
+        lat_combo.addItems([""] + fieldnames)
+        layout.addWidget(lat_combo)
+
+        # Dropdown for longitude field
+        lon_label = QLabel("Select the longitude field (optional):")
+        layout.addWidget(lon_label)
+        lon_combo = QComboBox()
+        lon_combo.addItems([""] + fieldnames)
+        layout.addWidget(lon_combo)
+
+        # OK and Cancel buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        layout.addWidget(button_box)
+
+        def on_accept():
+            dialog.accept()
+
+        def on_reject():
+            dialog.reject()
+
+        button_box.accepted.connect(on_accept)
+        button_box.rejected.connect(on_reject)
+
+        # Show dialog and return selections
+        if dialog.exec_() == QDialog.Accepted:
+            return (
+                w3w_combo.currentText(),
+                lat_combo.currentText(),
+                lon_combo.currentText()
+            )
+        else:
+            return None, None, None
+        
     ## Mapsite handling   
     def toggleMapToolForMapsite(self):
         apiKey = pluginSetting("apiKey", namespace="what3words")
