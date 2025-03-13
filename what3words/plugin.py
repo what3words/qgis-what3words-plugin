@@ -1,22 +1,20 @@
 from __future__ import absolute_import
 
 import os
-import webbrowser
 from builtins import object
 
-from qgis.core import Qgis, QgsApplication, QgsProject
-from qgis.gui import QgsMessageBar
-from qgis.PyQt.QtCore import QCoreApplication, Qt
+from qgis.core import Qgis, QgsApplication
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from qgis.utils import iface
 from qgiscommons2.gui import (addAboutMenu, addHelpMenu, removeAboutMenu,
                               removeHelpMenu)
-from qgiscommons2.gui.settings import addSettingsMenu, removeSettingsMenu
-from qgiscommons2.settings import pluginSetting, readSettings
+from qgiscommons2.gui.settings import removeSettingsMenu, _settingActions, ConfigDialog
+from qgiscommons2.settings import readSettings
 
-from what3words.coorddialog import W3WCoordInputDialog
-from what3words.maptool import W3WMapTool
+from what3words.coorddialog_new_ui import W3WCoordInputDialog 
+from what3words.w3wfunctions import register_w3w_functions, unregister_w3w_functions 
 from what3words.processingprovider.w3wprovider import W3WProvider
 
 
@@ -24,49 +22,49 @@ class W3WTools(object):
 
     def __init__(self, iface):
         self.iface = iface
-
+        self.coordDialog = None 
+        self.settingsDialog = None
+        self.provider = W3WProvider()
+        register_w3w_functions() 
+        
         try:
             from qgistester.tests import addTestModule
-
             from what3words.tests import testerplugin
             addTestModule(testerplugin, "what3words")
         except:
             pass
 
-        self.mapTool = None
-        
-        self.provider = W3WProvider()
-
         readSettings()
 
     def initGui(self):
-        mapToolIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.png"))
-        self.toolAction = QAction(mapToolIcon, "what3words map tool",
-                                     self.iface.mainWindow())
-        self.toolAction.triggered.connect(self.setTool)
-        self.toolAction.setCheckable(True)
-        self.iface.addToolBarIcon(self.toolAction)
-        self.iface.addPluginToMenu("what3words", self.toolAction)
+        # Add the dock widget for zooming to w3w
+        self.coordDialog = W3WCoordInputDialog(self.iface.mapCanvas(), self.iface.mainWindow())
+        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.coordDialog)
+        self.coordDialog.settingsButtonClicked.connect(self.toggleSettingsAction)  # Connect signal
+        self.coordDialog.hide()
 
-        zoomToIcon = QIcon(':/images/themes/default/mActionZoomIn.svg')
-        self.zoomToAction = QAction(zoomToIcon, "Zoom to 3 word address",
-                                     self.iface.mainWindow())
-        self.zoomToAction.triggered.connect(self.zoomTo)
-        self.iface.addPluginToMenu("what3words", self.zoomToAction)
+        # Add zoom to what3words address button
+        if not hasattr(self, 'coordDialogAction'):
+            coordDialogIcon = QIcon(os.path.join(os.path.dirname(__file__), "icons", "w3w.svg"))
+            self.coordDialogAction = QAction(coordDialogIcon, "Discover what3words address", self.iface.mainWindow())
+            self.coordDialogAction.triggered.connect(self.showW3WCoordInputDialog)
+            self.coordDialogAction.setCheckable(True)
+            self.coordDialog.coordDialogAction = self.coordDialogAction  # Pass the action to the dock widget
+            self.iface.addToolBarIcon(self.coordDialogAction)
+            self.iface.addPluginToMenu("what3words", self.coordDialogAction)
+        
+        # Add settings button to toolbar
+        if not hasattr(self, 'settingsAction'):
+            self.settingsAction = QAction(QgsApplication.getThemeIcon('/mActionOptions.svg'), "Settings",iface.mainWindow())
+            self.settingsAction.setCheckable(True)
+            self.settingsAction.triggered.connect(self.showSettingsDialog)
+            self.iface.addPluginToMenu("what3words", self.settingsAction)
 
-        addSettingsMenu(
-            "what3words", self.iface.addPluginToMenu)
-        addHelpMenu(
-            "what3words", self.iface.addPluginToMenu)
-        addAboutMenu(
-            "what3words", self.iface.addPluginToMenu)
+        # Add settings, help, and about menus
+        addHelpMenu("what3words", self.iface.addPluginToMenu)
+        addAboutMenu("what3words", self.iface.addPluginToMenu)
 
-        self.iface.mapCanvas().mapToolSet.connect(self.unsetTool)
-
-        self.zoomToDialog = W3WCoordInputDialog(self.iface.mapCanvas(), self.iface.mainWindow())
-        self.iface.addDockWidget(Qt.TopDockWidgetArea, self.zoomToDialog)
-        self.zoomToDialog.hide()
-
+        # Register the processing provider
         QgsApplication.processingRegistry().addProvider(self.provider)
 
         try:
@@ -75,63 +73,108 @@ class W3WTools(object):
             addLessonsFolder(folder, "what3words")
         except:
             pass
-
-    def zoomTo(self):
-        apikey = pluginSetting("apiKey")
-        if apikey is None or apikey == "":
-            self._showMessage('what3words API key is not set. Please set it and try again.', QgsMessageBar.WARNING)
+    
+    def showSettingsDialog(self):
+        """
+        Opens the settings dialog if it's not already open. Disables the settings button
+        while the dialog is open and re-enables it when the dialog is closed.
+        """
+        # Check if the dialog is already open
+        if hasattr(self, 'settingsDialog') and self.settingsDialog is not None:
+            self.settingsDialog.raise_()
             return
-        self.zoomToDialog.setApiKey(apikey)
-        self.zoomToDialog.show()
 
-    def unsetTool(self, tool):
-        try:
-            if not isinstance(tool, W3WMapTool):
-                self.toolAction.setChecked(False)
-        except:
-            # ignore exceptions thrown when unloading plugin, since
-            # map tool class might not exist already
-            pass
+        self.settingsAction.setEnabled(False)
+        self.coordDialog.settingsButton.setEnabled(False)  # Disable coordDialog button
 
-    def setTool(self):
-        apikey = pluginSetting("apiKey")
-        if apikey is None or apikey == "":
-            self._showMessage('what3words API key is not set. Please set it and try again.', Qgis.Warning)
-            return
-        if self.mapTool is None:
-            self.mapTool = W3WMapTool(self.iface.mapCanvas())
-        self.toolAction.setChecked(True)
-        self.iface.mapCanvas().setMapTool(self.mapTool)
+        self.settingsDialog = ConfigDialog("what3words")
+        self.settingsDialog.finished.connect(self.onSettingsDialogClosed)
+        self.settingsDialog.show()
+
+    def onSettingsDialogClosed(self):
+        """
+        Callback when the settings dialog is closed. Re-enables the settings button.
+        """
+        self.settingsAction.setEnabled(True)
+        self.coordDialog.settingsButton.setEnabled(True)  # Re-enable coordDialog button
+        self.settingsDialog = None  # Reset dialog reference
+
+    def toggleSettingsAction(self, disable):
+        """
+        Enables or disables the main menu settings button based on coordDialog's state.
+        """
+        self.settingsAction.setEnabled(not disable)
+
+    def showW3WCoordInputDialog(self):
+        """
+        Shows the 'Zoom to what3words address' dock widget.
+        Ensures the associated button remains consistent with the visibility state.
+        """
+
+        if not self.coordDialog.isVisible():
+            self.coordDialog.show()
+            self.coordDialogAction.setChecked(True)  # Ensure the button is checked
+        else:
+            self.coordDialog.hide()
+            self.coordDialogAction.setChecked(False)  # Ensure the button is unchecked
 
     def unload(self):
-        self.iface.mapCanvas().unsetMapTool(self.mapTool)
-        self.iface.removeToolBarIcon(self.toolAction)
-        self.iface.removePluginMenu("what3words", self.toolAction)
-        self.iface.removePluginMenu("what3words", self.zoomToAction)
+        """
+        Cleans up all components when the plugin is unloaded.
+        """
+        # Remove coorddialog action if present
+        if hasattr(self, 'coordDialogAction'):
+            self.iface.removeToolBarIcon(self.coordDialogAction)
+            self.iface.removePluginMenu("what3words", self.coordDialogAction)
+            del self.coordDialogAction
 
-        removeSettingsMenu("what3words")
-        removeHelpMenu("what3words")
-        removeAboutMenu("what3words")
+        # Remove settings action if present
+        if hasattr(self, 'settingsAction'):
+            self.iface.removeToolBarIcon(self.settingsAction)
+            self.iface.removePluginMenu("what3words", self.settingsAction)
+            del self.settingsAction
 
-        self.iface.removeDockWidget(self.zoomToDialog)
+        # Remove the dock widget
+        if self.coordDialog:
+            self.iface.removeDockWidget(self.coordDialog)
 
+        if "what3words" in _settingActions:
+            removeSettingsMenu("what3words")
+
+        # Safely remove help menu if it exists
+        try:
+            removeHelpMenu("what3words")
+        except KeyError:
+            iface.messageBar().pushMessage(
+                "what3words", "Help menu was not found during unload.", level=Qgis.Warning)
+
+        # Safely remove about menu if it exists
+        try:
+            removeAboutMenu("what3words")
+        except KeyError:
+            iface.messageBar().pushMessage(
+                "what3words", "About menu was not found during unload.", level=Qgis.Warning)
+
+        # Unregister functions and processing provider
+        unregister_w3w_functions()
         QgsApplication.processingRegistry().removeProvider(self.provider)
 
+        # Attempt to remove test modules and lessons folders if they exist
         try:
             from qgistester.tests import removeTestModule
-
             from what3words.tests import testerplugin
             removeTestModule(testerplugin, "what3words")
-        except:
+        except ImportError:
             pass
 
         try:
             from lessons import removeLessonsFolder
-            folder = os.path.join(pluginPath, '_lessons')
+            folder = os.path.join(os.path.dirname(__file__), '_lessons')
             removeLessonsFolder(folder)
-        except:
+        except ImportError:
             pass
 
     def _showMessage(self, message, level=Qgis.Info):
         iface.messageBar().pushMessage(
             message, level, iface.messageTimeout())
+        

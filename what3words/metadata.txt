@@ -1,10 +1,10 @@
 [general]
 name=What3words Tools
 description=Enables what3words addresses in QGIS
-about=<p>what3words is a global grid of 57 trillion 3mx3m squares. Each square has a 3 word address that can be communicated quickly, easily and with no ambiguity. Our geocoder turns geographic coordinates into 3 word addresses and vice-versa. Our plugin lets you work with the addresses within QGIS.</p><p>To get started please <a href="https://accounts.what3words.com/" target="_blank">create an account with what3words</a>, select your free tier and get your free API key.</p>
+about=<p>what3words is a global grid of 57 trillion 3mx3m squares. Each square has a 3 word address that can be communicated quickly, easily and with no ambiguity. Our geocoder turns geographic coordinates into 3 word addresses and vice-versa. Our plugin lets you work with the addresses within QGIS.</p><p>To get started please <a href="https://plugins.qgis.org/plugins/what3words/?utm_source=QGIS&utm_medium=Plugin_Listing&utm_campaign=QGIS_Create_Account#plugin-about" target="_blank">create an account with what3words</a>, select your free tier and get your free API key.</p>
 category=Plugins
 qgisMinimumVersion=3.0
-version=4.3
+version=4.4
 
 roles=desktop-qgis-plugin-w3w
 

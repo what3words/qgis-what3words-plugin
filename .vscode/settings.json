@@ -1,0 +1,16 @@
+{
+  "python.defaultInterpreterPath": "/Applications/QGIS-LTR.app/Contents/MacOS/bin/python3",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.autoComplete.extraPaths": [
+      "/Applications/QGIS-LTR.app/Contents/Resources/python",
+      "/Applications/QGIS-LTR.app/Contents/Resources/python/plugins"
+    ],
+    "python.analysis.extraPaths": [
+      "/Applications/QGIS-LTR.app/Contents/Resources/python",
+      "/Applications/QGIS-LTR.app/Contents/Resources/python/plugins"
+    ]
+}

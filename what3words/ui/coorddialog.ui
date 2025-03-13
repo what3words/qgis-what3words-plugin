@@ -1,0 +1,554 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>discoverToWhat3words</class>
+ <widget class="QDockWidget" name="discoverToWhat3words">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>589</width>
+    <height>307</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>436</width>
+    <height>307</height>
+   </size>
+  </property>
+  <property name="toolTip">
+   <string>Discover what3words address</string>
+  </property>
+  <property name="floating">
+   <bool>true</bool>
+  </property>
+  <property name="features">
+   <set>QDockWidget::AllDockWidgetFeatures</set>
+  </property>
+  <property name="windowTitle">
+   <string>Discover what3words address</string>
+  </property>
+  <widget class="QWidget" name="dockWidgetContents">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>436</width>
+     <height>285</height>
+    </size>
+   </property>
+   <property name="toolTip">
+    <string>what3words address Tools</string>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="leftMargin">
+     <number>10</number>
+    </property>
+    <property name="topMargin">
+     <number>10</number>
+    </property>
+    <property name="rightMargin">
+     <number>10</number>
+    </property>
+    <property name="bottomMargin">
+     <number>10</number>
+    </property>
+    <item>
+     <layout class="QHBoxLayout" name="topButtons">
+      <property name="sizeConstraint">
+       <enum>QLayout::SetFixedSize</enum>
+      </property>
+      <item>
+       <widget class="QGroupBox" name="grid_map_tools">
+        <property name="font">
+         <font>
+          <family>Microsoft Sans Serif</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="title">
+         <string>Grid and Map Tools</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <property name="leftMargin">
+          <number>2</number>
+         </property>
+         <property name="topMargin">
+          <number>2</number>
+         </property>
+         <property name="rightMargin">
+          <number>2</number>
+         </property>
+         <property name="bottomMargin">
+          <number>2</number>
+         </property>
+         <item>
+          <widget class="QToolButton" name="w3wCaptureButton">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>ArrowCursor</cursorShape>
+           </property>
+           <property name="toolTip">
+            <string>Capture what3words address by clicking on map</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="viewGridButton">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>View Grid</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="openMapsiteButton">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Show in what3words mapsite</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+           <property name="autoRaise">
+            <bool>false</bool>
+           </property>
+           <property name="arrowType">
+            <enum>Qt::NoArrow</enum>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="hs_1">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="table_management_group">
+        <property name="font">
+         <font>
+          <family>Microsoft Sans Serif</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="toolTip">
+         <string>Table Management</string>
+        </property>
+        <property name="title">
+         <string>Table Management</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <layout class="QHBoxLayout" name="table_management">
+         <property name="leftMargin">
+          <number>2</number>
+         </property>
+         <property name="topMargin">
+          <number>2</number>
+         </property>
+         <property name="rightMargin">
+          <number>2</number>
+         </property>
+         <property name="bottomMargin">
+          <number>2</number>
+         </property>
+         <item>
+          <widget class="QToolButton" name="importFile">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Import what3words/coordinates list</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+           <property name="popupMode">
+            <enum>QToolButton::InstantPopup</enum>
+           </property>
+           <property name="autoRaise">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="saveToFileButton">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Save what3words Address List</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+           <property name="popupMode">
+            <enum>QToolButton::InstantPopup</enum>
+           </property>
+           <property name="autoRaise">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="createLayerButton">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Create Vector Layer From what3words List</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="deleteSelectedButton">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Delete selected what3words from the table</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="clearAll">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Delete All</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="hs_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="plugin_settings">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>45</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>45</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Microsoft Sans Serif</family>
+          <pointsize>11</pointsize>
+         </font>
+        </property>
+        <property name="acceptDrops">
+         <bool>false</bool>
+        </property>
+        <property name="toolTip">
+         <string>Plugin Settings</string>
+        </property>
+        <property name="toolTipDuration">
+         <number>-1</number>
+        </property>
+        <property name="layoutDirection">
+         <enum>Qt::LeftToRight</enum>
+        </property>
+        <property name="title">
+         <string>Settings</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+        <layout class="QHBoxLayout" name="plugin_settings_2">
+         <property name="leftMargin">
+          <number>2</number>
+         </property>
+         <property name="topMargin">
+          <number>2</number>
+         </property>
+         <property name="rightMargin">
+          <number>2</number>
+         </property>
+         <property name="bottomMargin">
+          <number>2</number>
+         </property>
+         <item>
+          <widget class="QToolButton" name="settingsButton">
+           <property name="minimumSize">
+            <size>
+             <width>30</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="toolTip">
+            <string>Settings</string>
+           </property>
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="hs_3">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Expanding</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>60</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="QLabel" name="w3wLabel">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="font">
+       <font>
+        <family>Microsoft Sans Serif</family>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+      <property name="cursor">
+       <cursorShape>BlankCursor</cursorShape>
+      </property>
+      <property name="toolTip">
+       <string>Enter what3words address</string>
+      </property>
+      <property name="toolTipDuration">
+       <number>1</number>
+      </property>
+      <property name="text">
+       <string>Enter what3words address</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <layout class="QGridLayout" name="inputField">
+      <property name="leftMargin">
+       <number>2</number>
+      </property>
+      <property name="topMargin">
+       <number>2</number>
+      </property>
+      <property name="rightMargin">
+       <number>2</number>
+      </property>
+      <property name="bottomMargin">
+       <number>2</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLineEdit" name="addLineEdit">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Microsoft Sans Serif</family>
+          <pointsize>14</pointsize>
+         </font>
+        </property>
+        <property name="toolTip">
+         <string>Enter what3words address here e.g.  ///index.home.raft</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="frame">
+         <bool>true</bool>
+        </property>
+        <property name="placeholderText">
+         <string>  e.g. ///index.home.raft</string>
+        </property>
+        <property name="clearButtonEnabled">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QTableWidget" name="tableWidget">
+        <property name="toolTip">
+         <string>List of what3words address</string>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectRows</enum>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>10</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="bottomButtons">
+      <item>
+       <widget class="QCheckBox" name="showAllMarkersCheckBox">
+        <property name="toolTip">
+         <string>Show All Markers</string>
+        </property>
+        <property name="text">
+         <string>Show All Markers</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="clearMarkersButton">
+        <property name="toolTip">
+         <string>Clear Markers</string>
+        </property>
+        <property name="text">
+         <string>...</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

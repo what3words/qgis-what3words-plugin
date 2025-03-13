@@ -12,6 +12,8 @@ from qgis.core import QgsProcessingProvider
 from processing.core.ProcessingConfig import Setting, ProcessingConfig
 from what3words.processingprovider.add3wordsfield import Add3WordsFieldAlgorithm
 from what3words.processingprovider.addgeomfield import Add3WordsGeomFieldAlgorithm
+from what3words.processingprovider.generatew3wgrid import GenerateW3WGridAlgorithm
+from what3words.processingprovider.convertw3wlanguage import ConvertWhat3WordsLanguageAlgorithm
 
 pluginPath = os.path.split(os.path.dirname(__file__))[0]
 
@@ -29,7 +31,7 @@ class W3WProvider(QgsProcessingProvider):
         return True
 
     def unload(self):
-        pass
+        QgsProcessingProvider.unload(self)
 
     def isActive(self):
         """Return True if the provider is activated and ready to run algorithms"""
@@ -52,4 +54,7 @@ class W3WProvider(QgsProcessingProvider):
             self.addAlgorithm(alg)
         for alg in [Add3WordsGeomFieldAlgorithm()]:
             self.addAlgorithm(alg)
-
+        for alg in [GenerateW3WGridAlgorithm()]:
+            self.addAlgorithm(alg)
+        for alg in [ConvertWhat3WordsLanguageAlgorithm()]:
+            self.addAlgorithm(alg)

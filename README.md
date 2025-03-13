@@ -14,6 +14,14 @@ This plugin is compatible with QGIS v3 or later.
 
 The plugin is documentated [here](https://developer.what3words.com/tools/gis-extensions/qgis)
 
+
+## QT designer layout
+To extract the UI from the QT designer, run the following command on the bash
+
+```shell
+pyuic5 what3words/ui/coorddialog.ui -o what3words/ui/coorddialog_ui.py
+```
+
 ## License - GPLv2
 
 Versions 1-3, Copyright  (C) 2016-2020 Planet Federal QGIS plugin [contributors](CONTRIBUTING.rst)
@@ -53,3 +61,12 @@ Remove tkinter library
     
     Fix a bug on installing the widget on QGIS windows
 
+*2024 (v4.4)*
+Redesign the plugin
+    
+    Add a grid view
+    Updade the zoom to what3words 
+    Update the map tool 
+    Add the AutoSuggest component
+    Add what3words Tools functions within Fields Calculator
+    Allow to use other API base URL
