@@ -65,7 +65,7 @@ Remove tkinter library
 Redesign the plugin
     
     Add a grid view
-    Updade the zoom to what3words 
+    Update the zoom to what3words 
     Update the map tool 
     Add the AutoSuggest component
     Add what3words Tools functions within Fields Calculator
