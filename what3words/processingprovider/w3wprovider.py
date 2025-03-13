@@ -58,4 +58,3 @@ class W3WProvider(QgsProcessingProvider):
             self.addAlgorithm(alg)
         for alg in [ConvertWhat3WordsLanguageAlgorithm()]:
             self.addAlgorithm(alg)
-

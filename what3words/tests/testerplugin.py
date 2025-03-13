@@ -10,7 +10,7 @@
 import os
 
 from qgis.utils import iface, plugins
-from qgis.core import QgsMapLayerRegistry, QgsPoint
+from qgis.core import QgsProject, QgsPoint
 from qgiscommons2.layers import loadLayer
 
 def functionalTests():
@@ -23,7 +23,7 @@ def functionalTests():
     def _loadLayer():
         layerfile = os.path.join(os.path.dirname(__file__), "w3w.shp")
         layer = loadLayer(layerfile, provider="ogr")
-        QgsMapLayerRegistry.instance().addMapLayer(layer)
+        QgsProject.instance().addMapLayer(layer)
 
     def _setTool():
         plugins["what3words"].setTool()
